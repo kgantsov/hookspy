@@ -1,15 +1,20 @@
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, StatusCode},
-    response::Json,
+    http::{header, HeaderMap, StatusCode, Uri},
+    response::{IntoResponse, Json},
     routing::{get, post},
     Router,
 };
 use libsql::{Builder, Connection};
+use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
+
+#[derive(RustEmbed)]
+#[folder = "../frontend/dist"]
+struct Assets;
 
 #[derive(Clone)]
 struct AppState {
@@ -218,15 +223,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db: Arc::new(Mutex::new(db)),
     };
 
+    let api_routes = Router::new()
+        .route("/health", get(|| async { "OK" }))
+        .route("/webhooks", post(create_webhook))
+        .route("/webhooks", get(list_webhooks))
+        .route("/webhooks/:webhook_id/requests", get(get_webhook_requests))
+        .route("/webhooks/:webhook_id", post(receive_webhook));
+
     let app = Router::new()
-        .route("/api/webhooks", post(create_webhook))
-        .route("/api/webhooks", get(list_webhooks))
-        .route(
-            "/api/webhooks/:webhook_id/requests",
-            get(get_webhook_requests),
-        )
-        .route("/api/webhooks/:webhook_id", post(receive_webhook))
-        .with_state(state);
+        .nest("/api", api_routes)
+        .with_state(state)
+        .fallback(static_handler);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     println!("Server running on http://0.0.0.0:3000");
@@ -234,4 +241,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+
+    if path.is_empty() {
+        path = "index.html".to_string();
+    }
+
+    match Assets::get(path.as_str()) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+        }
+        None => {
+            if let Some(index) = Assets::get("index.html") {
+                return ([(header::CONTENT_TYPE, "text/html")], index.data).into_response();
+            }
+            (StatusCode::NOT_FOUND, "404 Not Found").into_response()
+        }
+    }
 }
