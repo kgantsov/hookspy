@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use web_sys::window;
 use yew::prelude::*;
 
 use hookspy_ui::components::webhook_details::WebhookDetails;
@@ -30,7 +31,41 @@ fn App() -> Html {
 
     let on_webhook_select = {
         let selected_webhook = selected_webhook.clone();
-        Callback::from(move |webhook: Webhook| selected_webhook.set(Some(webhook)))
+        Callback::from(move |webhook: Webhook| {
+            selected_webhook.set(Some(webhook));
+        })
+    };
+
+    let on_webhook_delete = {
+        let selected_webhook = selected_webhook.clone();
+        let webhooks = webhooks.clone();
+        Callback::from(move |webhook: Webhook| {
+            if let Some(window) = window() {
+                let confirmation =
+                    window.confirm_with_message("Are you sure you want to delete this webhook?");
+                if let Ok(true) = confirmation {
+                    let selected_webhook = selected_webhook.clone();
+                    let webhooks = webhooks.clone();
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let response = Request::delete(&format!("/api/webhooks/{}", webhook.id))
+                            .send()
+                            .await;
+                        if response.is_ok() {
+                            selected_webhook.set(None);
+
+                            let fetched_webhooks: Vec<Webhook> = Request::get("/api/webhooks")
+                                .send()
+                                .await
+                                .unwrap()
+                                .json()
+                                .await
+                                .unwrap();
+                            webhooks.set(fetched_webhooks);
+                        }
+                    });
+                }
+            }
+        })
     };
 
     html! {
@@ -53,7 +88,11 @@ fn App() -> Html {
                         >
                     </div>
 
-                    <WebhookList webhooks={(*webhooks).clone()} on_click={on_webhook_select} />
+                    <WebhookList
+                        webhooks={(*webhooks).clone()}
+                        on_click={on_webhook_select}
+                        on_delete={on_webhook_delete}
+                    />
                 </aside>
                 <main class="main-content">
 
