@@ -62,7 +62,7 @@ async fn init_db(conn: &Connection) -> Result<(), libsql::Error> {
             headers TEXT NOT NULL,
             body TEXT NOT NULL,
             received_at TEXT NOT NULL,
-            FOREIGN KEY (webhook_id) REFERENCES webhooks(id)
+            FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
         )",
         (),
     )
