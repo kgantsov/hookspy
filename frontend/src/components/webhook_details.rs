@@ -12,7 +12,7 @@ pub struct WebhookDetailsProps {
 
 #[component]
 pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> Html {
-    let url = format!("http://0.0.0.0:3000/api/webhooks/{}", webhook.id);
+    let url = webhook.url.clone();
     let url_to_copy = url.clone();
 
     let onclick = Callback::from(move |_| {

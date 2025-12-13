@@ -5,7 +5,8 @@ use yew::prelude::*;
 pub struct Webhook {
     pub id: String,
     pub name: String,
-    created_at: String,
+    pub url: String,
+    pub created_at: String,
 }
 
 #[derive(Properties, PartialEq)]
@@ -16,7 +17,13 @@ pub struct WebhookListProps {
 }
 
 #[component]
-pub fn WebhookList(WebhookListProps { webhooks, on_click, on_delete }: &WebhookListProps) -> Html {
+pub fn WebhookList(
+    WebhookListProps {
+        webhooks,
+        on_click,
+        on_delete,
+    }: &WebhookListProps,
+) -> Html {
     let on_select = |webhook: &Webhook| {
         let on_click = on_click.clone();
         let webhook = webhook.clone();

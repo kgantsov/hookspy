@@ -5,6 +5,7 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
+use clap::Parser;
 use libsql::{Builder, Connection};
 use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
@@ -19,12 +20,14 @@ struct Assets;
 #[derive(Clone)]
 struct AppState {
     db: Arc<Mutex<Connection>>,
+    domain: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Webhook {
     id: String,
     name: String,
+    url: String,
     created_at: String,
 }
 
@@ -71,6 +74,10 @@ async fn init_db(conn: &Connection) -> Result<(), libsql::Error> {
     Ok(())
 }
 
+fn construct_url(domain: &str, id: &str) -> String {
+    format!("{}/webhooks/{}", domain, id)
+}
+
 async fn create_webhook(
     State(state): State<AppState>,
     Json(payload): Json<CreateWebhookRequest>,
@@ -86,8 +93,11 @@ async fn create_webhook(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    let url = construct_url(&state.domain, &id);
+
     Ok(Json(Webhook {
         id,
+        url,
         name: payload.name,
         created_at,
     }))
@@ -142,10 +152,16 @@ async fn list_webhooks(State(state): State<AppState>) -> Result<Json<Vec<Webhook
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     {
+        let id: String = row.get(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let url = construct_url(&state.domain, &id);
+        let name: String = row.get(1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let created_at: String = row.get(2).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
         webhooks.push(Webhook {
-            id: row.get(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-            name: row.get(1).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-            created_at: row.get(2).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+            id,
+            url,
+            name,
+            created_at,
         });
     }
 
@@ -265,9 +281,45 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
     }
 }
 
+#[derive(Parser, Debug)]
+#[command(
+    author = "Kostiantyn Hantsov",
+    about = "Hookspy - Webhook testing tool"
+)]
+struct Args {
+    #[arg(
+        short,
+        long,
+        value_name = "ADDRESS",
+        help = "Address to listen on",
+        default_value = "0.0.0.0:3000"
+    )]
+    address: String,
+
+    #[arg(
+        short,
+        long,
+        value_name = "DOMAIN",
+        help = "Domain of the webhook server",
+        default_value = "http://0.0.0.0:3000"
+    )]
+    domain: String,
+
+    #[arg(
+        short = 'p',
+        long,
+        value_name = "DATABASE_PATH",
+        help = "Path to the database file",
+        default_value = "hookspy.db"
+    )]
+    database_path: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let db_path = std::env::var("TURSO_DATABASE_PATH").expect("TURSO_DATABASE_PATH must be set");
+    let args = Args::parse();
+
+    let db_path = args.database_path;
 
     let db = Builder::new_local(db_path).build().await?.connect()?;
 
@@ -275,6 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = AppState {
         db: Arc::new(Mutex::new(db)),
+        domain: args.domain,
     };
 
     let api_routes = Router::new()
@@ -290,8 +343,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(state)
         .fallback(static_handler);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    println!("Server running on http://0.0.0.0:3000");
+    let listener = tokio::net::TcpListener::bind(&args.address).await?;
+    println!("Server running on http://{}", args.address);
 
     axum::serve(listener, app).await?;
 
