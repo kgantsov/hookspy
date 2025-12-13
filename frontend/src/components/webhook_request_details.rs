@@ -34,9 +34,8 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
     html! {
         <div
             class={format!("request-card {} {}", expanded_class, props.request.id.clone())}
-            {onclick}
         >
-            <div class="request-header">
+            <div class="request-header" {onclick}>
                 <div class="request-meta">
                     <span class="method-badge method-post">
                         { props.request.method.clone() }

@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use hookspy_ui::components::create_webhook_modal::CreateWebhookModal;
 use web_sys::window;
 use yew::prelude::*;
 
@@ -26,6 +27,8 @@ fn App() -> Html {
             || ()
         });
     }
+
+    let create_webhook_modal_is_open = use_state(|| false);
 
     let selected_webhook = use_state(|| None);
 
@@ -69,40 +72,66 @@ fn App() -> Html {
     };
 
     html! {
-        <div class="container">
-            <header>
-                <div class="logo">
-                    <div class="logo-icon">{ "🪝" }</div>
-                    <span>{ "HookSpy" }</span>
-                </div>
-                // <button class="btn btn-primary">
-                //     {"+ New Webhook"}
-                // </button>
-            </header>
-            <div class="layout">
-                <aside class="sidebar">
-                    <div class="sidebar-header">
-                        <h2 class="sidebar-title">{ "Webhooks" }</h2>
-                        <span class="sidebar-title" style="font-weight: 400"
-                            >{webhooks.len()}</span
-                        >
+        <>
+            <div class="container">
+                <header>
+                    <div class="logo">
+                        <div class="logo-icon">{ "🪝" }</div>
+                        <span>{ "HookSpy" }</span>
                     </div>
+                    <button
+                    class="btn btn-primary"
+                    onclick={
+                        let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
+                        move |_| create_webhook_modal_is_open.set(true)
+                    }>
+                        {"+ New Webhook"}
+                    </button>
+                </header>
+                <div class="layout">
+                    <aside class="sidebar">
+                        <div class="sidebar-header">
+                            <h2 class="sidebar-title">{ "Webhooks" }</h2>
+                            <span class="sidebar-title" style="font-weight: 400"
+                                >{webhooks.len()}</span
+                            >
+                        </div>
 
-                    <WebhookList
-                        webhooks={(*webhooks).clone()}
-                        on_click={on_webhook_select}
-                        on_delete={on_webhook_delete}
-                    />
-                </aside>
-                <main class="main-content">
+                        <WebhookList
+                            webhooks={(*webhooks).clone()}
+                            on_click={on_webhook_select}
+                            on_delete={on_webhook_delete}
+                        />
+                    </aside>
+                    <main class="main-content">
 
-                    if let Some(webhook) = &*selected_webhook {
-                        <WebhookDetails webhook={webhook.clone()} />
-                    }
+                        if let Some(webhook) = &*selected_webhook {
+                            <WebhookDetails webhook={webhook.clone()} />
+                        }
 
-                </main>
+                    </main>
+                </div>
             </div>
-        </div>
+
+            <CreateWebhookModal
+                is_open={*create_webhook_modal_is_open}
+                on_close={
+                    let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
+                    move |_| {create_webhook_modal_is_open.set(false);
+                        let webhooks = webhooks.clone();
+                        wasm_bindgen_futures::spawn_local(async move {
+                            let fetched_webhooks: Vec<Webhook> = Request::get("/api/webhooks")
+                                .send()
+                                .await
+                                .unwrap()
+                                .json()
+                                .await
+                                .unwrap();
+                            webhooks.set(fetched_webhooks);
+                        });}
+                }
+            />
+        </>
     }
 }
 

@@ -1,8 +1,8 @@
 use gloo_net::http::Request;
 use yew::prelude::*;
 
-use crate::components::webhook_request::WebhookRequest;
-use crate::components::webhook_request::WebhookRequestDetails;
+use crate::components::webhook_request_details::WebhookRequest;
+use crate::components::webhook_request_details::WebhookRequestDetails;
 
 #[derive(Properties, PartialEq)]
 pub struct WebhookRequestListProps {
