@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::{header, HeaderMap, StatusCode, Uri},
     response::{IntoResponse, Json},
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use libsql::{Builder, Connection};
@@ -91,6 +91,39 @@ async fn create_webhook(
         name: payload.name,
         created_at,
     }))
+}
+
+async fn delete_webhook(
+    State(state): State<AppState>,
+    Path(webhook_id): Path<String>,
+) -> Result<(), StatusCode> {
+    let db = state.db.lock().await;
+
+    let mut rows = db
+        .query(
+            "SELECT id FROM webhooks WHERE id = ?",
+            libsql::params![webhook_id.clone()],
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if rows
+        .next()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .is_none()
+    {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    db.execute(
+        "DELETE FROM webhooks WHERE id = ?",
+        libsql::params![webhook_id],
+    )
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(())
 }
 
 async fn list_webhooks(State(state): State<AppState>) -> Result<Json<Vec<Webhook>>, StatusCode> {
@@ -211,38 +244,6 @@ async fn get_webhook_requests(
     Ok(Json(requests))
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let db_path = std::env::var("TURSO_DATABASE_PATH").expect("TURSO_DATABASE_PATH must be set");
-
-    let db = Builder::new_local(db_path).build().await?.connect()?;
-
-    init_db(&db).await?;
-
-    let state = AppState {
-        db: Arc::new(Mutex::new(db)),
-    };
-
-    let api_routes = Router::new()
-        .route("/health", get(|| async { "OK" }))
-        .route("/webhooks", post(create_webhook))
-        .route("/webhooks", get(list_webhooks))
-        .route("/webhooks/:webhook_id/requests", get(get_webhook_requests))
-        .route("/webhooks/:webhook_id", post(receive_webhook));
-
-    let app = Router::new()
-        .nest("/api", api_routes)
-        .with_state(state)
-        .fallback(static_handler);
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    println!("Server running on http://0.0.0.0:3000");
-
-    axum::serve(listener, app).await?;
-
-    Ok(())
-}
-
 async fn static_handler(uri: Uri) -> impl IntoResponse {
     let mut path = uri.path().trim_start_matches('/').to_string();
 
@@ -262,4 +263,37 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
             (StatusCode::NOT_FOUND, "404 Not Found").into_response()
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let db_path = std::env::var("TURSO_DATABASE_PATH").expect("TURSO_DATABASE_PATH must be set");
+
+    let db = Builder::new_local(db_path).build().await?.connect()?;
+
+    init_db(&db).await?;
+
+    let state = AppState {
+        db: Arc::new(Mutex::new(db)),
+    };
+
+    let api_routes = Router::new()
+        .route("/health", get(|| async { "OK" }))
+        .route("/webhooks", post(create_webhook))
+        .route("/webhooks", get(list_webhooks))
+        .route("/webhooks/:webhook_id/requests", get(get_webhook_requests))
+        .route("/webhooks/:webhook_id", post(receive_webhook))
+        .route("/webhooks/:webhook_id", delete(delete_webhook));
+
+    let app = Router::new()
+        .nest("/api", api_routes)
+        .with_state(state)
+        .fallback(static_handler);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    println!("Server running on http://0.0.0.0:3000");
+
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
