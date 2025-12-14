@@ -429,6 +429,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-humanize",
+ "futures-util",
  "gloo-net 0.6.0",
  "serde",
  "serde_json",
