@@ -155,14 +155,23 @@ pub async fn receive_webhook(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(WebhookRequest {
+    let mut notification = state.notification.lock().await;
+
+    let result = WebhookRequest {
         id,
-        webhook_id,
+        webhook_id: webhook_id.clone(),
         method: "POST".to_string(),
         headers: headers_json,
         body,
         received_at,
-    }))
+    };
+
+    let result_json =
+        serde_json::to_string(&result).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    notification.notify(webhook_id.clone(), result_json).await;
+
+    Ok(Json(result))
 }
 
 pub async fn get_webhook_requests(

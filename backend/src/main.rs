@@ -10,11 +10,12 @@ use rust_embed::RustEmbed;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use hookspy::app::AppState;
 use hookspy::handlers::webhook::{
     create_webhook, delete_webhook, get_webhook_requests, list_webhooks, receive_webhook,
 };
 use hookspy::model::db::init_db;
+use hookspy::notification::notification::Notification;
+use hookspy::{app::AppState, handlers::ws::webhook_notifications_ws};
 
 #[derive(RustEmbed)]
 #[folder = "../frontend/dist"]
@@ -87,6 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let state = AppState {
         db: Arc::new(Mutex::new(db)),
+        notification: Arc::new(Mutex::new(Notification::new())),
         domain: args.domain,
     };
 
@@ -98,8 +100,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/webhooks/:webhook_id", post(receive_webhook))
         .route("/webhooks/:webhook_id", delete(delete_webhook));
 
+    let ws_routes = Router::new().route(
+        "/webhooks/:webhook_id/notifications",
+        get(webhook_notifications_ws),
+    );
+
     let app = Router::new()
         .nest("/api", api_routes)
+        .nest("/ws", ws_routes)
         .with_state(state)
         .fallback(static_handler);
 
