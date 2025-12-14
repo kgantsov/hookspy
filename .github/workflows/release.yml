@@ -6,10 +6,13 @@ on:
       - "v*"
 
 env:
-  CARGO_TERM_COLOR: always
   BIN_NAME: hookspy
+  CARGO_TERM_COLOR: always
 
 jobs:
+  # --------------------------------------------------
+  # 1. Build frontend (Yew + Trunk)
+  # --------------------------------------------------
   build-frontend:
     name: Build frontend
     runs-on: ubuntu-latest
@@ -17,20 +20,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
 
-      - uses: actions/setup-node@v4
+      - name: Install Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Trunk
         run: cargo install trunk
 
-      - name: Build Yew frontend
+      - name: Build frontend
         working-directory: frontend
         run: trunk build --release
 
@@ -40,15 +46,13 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
-  build-backend:
-    name: Build backend (${{ matrix.target }})
+  # --------------------------------------------------
+  # 2. Build Linux backend
+  # --------------------------------------------------
+  build-linux:
+    name: Build Linux backend
     needs: build-frontend
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
 
     steps:
       - uses: actions/checkout@v4
@@ -59,46 +63,92 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build backend
+        working-directory: backend
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          cp backend/target/x86_64-unknown-linux-gnu/release/${{ env.BIN_NAME }} \
+             dist/${{ env.BIN_NAME }}-linux
+
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BIN_NAME }}-linux
+          path: dist/*
+
+  # --------------------------------------------------
+  # 3. Build macOS backend (x86_64 + arm64)
+  # --------------------------------------------------
+  build-macos:
+    name: Build macOS backend (${{ matrix.target }})
+    needs: build-frontend
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Install cross-compilation deps
-        run: |
-          if [[ "${{ matrix.target }}" == *"apple-darwin"* ]]; then
-            sudo apt-get update
-            sudo apt-get install -y clang lld
-          fi
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Build backend
         working-directory: backend
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Prepare artifact
+      - name: Package binary
         run: |
           mkdir -p dist
-          cp backend/target/${{ matrix.target }}/release/${{ env.BIN_NAME }} dist/${{ env.BIN_NAME }}-${{ matrix.target }}
+          cp backend/target/${{ matrix.target }}/release/${{ env.BIN_NAME }} \
+             dist/${{ env.BIN_NAME }}-${{ matrix.target }}
 
-      - name: Upload binary
+      - name: Upload macOS binary
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BIN_NAME }}-${{ matrix.target }}
           path: dist/*
 
+  # --------------------------------------------------
+  # 4. Create GitHub Release
+  # --------------------------------------------------
   release:
-    name: Create GitHub Release
-    needs: build-backend
+    name: Publish GitHub Release
+    needs: [build-linux, build-macos]
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download all binaries
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Create Release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
