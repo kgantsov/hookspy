@@ -3,6 +3,10 @@ name = "hookspy"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "hookspy"
+path = "src/main.rs"
+
 [dependencies]
 axum = { version = "0.7", features = ["ws"] }
 futures-util = "0.3"
