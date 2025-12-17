@@ -7,6 +7,7 @@ use axum::{
 };
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::app::AppState;
@@ -16,16 +17,13 @@ pub async fn webhook_notifications_ws(
     Path(webhook_id): Path<String>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    println!(
-        "Webhook notifications websocket requested for webhook ID: {}",
-        webhook_id.clone()
-    );
+    info!("Client connecting to webhook ID: {}", webhook_id.clone());
     ws.on_upgrade(move |socket| handle_socket(state, socket, webhook_id))
 }
 
 async fn handle_socket(state: AppState, socket: WebSocket, webhook_id: String) {
     let session_id = Uuid::new_v4().to_string();
-    println!("Client connected: {}", session_id);
+    info!("Client connected: {} {}", webhook_id, session_id);
 
     let (mut ws_tx, mut ws_rx) = socket.split();
     let (tx, mut rx) = mpsc::channel::<Message>(32);
@@ -49,7 +47,7 @@ async fn handle_socket(state: AppState, socket: WebSocket, webhook_id: String) {
     while let Some(Ok(msg)) = ws_rx.next().await {
         match msg {
             Message::Text(text) => {
-                println!("{} -> {}", session_id, text);
+                info!("{} {} -> {}", webhook_id, session_id, text);
             }
             Message::Close(_) => break,
             _ => {}
@@ -63,5 +61,5 @@ async fn handle_socket(state: AppState, socket: WebSocket, webhook_id: String) {
     }
 
     send_task.abort();
-    println!("Client disconnected: {}", session_id);
+    info!("Client disconnected: {} {}", webhook_id, session_id);
 }

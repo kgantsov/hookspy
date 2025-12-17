@@ -5,6 +5,8 @@ use axum::{
 };
 use uuid::Uuid;
 
+use tracing::error;
+
 use crate::app::AppState;
 use crate::handlers::error::ApiError;
 use crate::model::webhook::Webhook;
@@ -27,7 +29,10 @@ pub async fn create_webhook(
         libsql::params![id.clone(), payload.name.clone(), created_at.clone()],
     )
     .await
-    .map_err(|_| ApiError::InternalServerError("failed to create webhook".to_string()))?;
+    .map_err(|err| {
+        error!("Failed to insert webhook: {} {}", id, err);
+        ApiError::InternalServerError("failed to create webhook".to_string())
+    })?;
 
     let url = construct_url(&state.domain, &id);
 
@@ -51,12 +56,18 @@ pub async fn delete_webhook(
             libsql::params![webhook_id.clone()],
         )
         .await
-        .map_err(|_| ApiError::InternalServerError("failed to delete webhook".to_string()))?;
+        .map_err(|err| {
+            error!("Failed to query webhook: {} {}", webhook_id, err);
+            ApiError::InternalServerError("failed to delete webhook".to_string())
+        })?;
 
     if rows
         .next()
         .await
-        .map_err(|_| ApiError::InternalServerError("failed to delete webhook".to_string()))?
+        .map_err(|err| {
+            error!("Failed to get next row for webhook: {} {}", webhook_id, err);
+            ApiError::InternalServerError("failed to delete webhook".to_string())
+        })?
         .is_none()
     {
         return Err(ApiError::NotFound("webhook not found".to_string()));
@@ -64,10 +75,13 @@ pub async fn delete_webhook(
 
     db.execute(
         "DELETE FROM webhooks WHERE id = ?",
-        libsql::params![webhook_id],
+        libsql::params![webhook_id.clone()],
     )
     .await
-    .map_err(|_| ApiError::InternalServerError("failed to delete webhook".to_string()))?;
+    .map_err(|err| {
+        error!("Failed to delete webhook: {} {}", webhook_id, err);
+        ApiError::InternalServerError("failed to delete webhook".to_string())
+    })?;
 
     Ok(())
 }
@@ -80,24 +94,29 @@ pub async fn list_webhooks(State(state): State<AppState>) -> Result<Json<Vec<Web
             (),
         )
         .await
-        .map_err(|_| ApiError::InternalServerError("failed to fetch webhooks".to_string()))?;
+        .map_err(|err| {
+            error!("Failed to fetch webhooks: {}", err);
+            ApiError::InternalServerError("failed to fetch webhooks".to_string())
+        })?;
 
     let mut webhooks = Vec::new();
-    while let Some(row) = rows
-        .next()
-        .await
-        .map_err(|_| ApiError::InternalServerError("failed to fetch webhooks".to_string()))?
-    {
-        let id: String = row
-            .get(0)
-            .map_err(|_| ApiError::InternalServerError("failed to fetch webhooks".to_string()))?;
+    while let Some(row) = rows.next().await.map_err(|err| {
+        error!("Failed to get next webhook: {}", err);
+        ApiError::InternalServerError("failed to fetch webhooks".to_string())
+    })? {
+        let id: String = row.get(0).map_err(|err| {
+            error!("Failed to get webhook ID: {}", err);
+            ApiError::InternalServerError("failed to fetch webhooks".to_string())
+        })?;
         let url = construct_url(&state.domain, &id);
-        let name: String = row
-            .get(1)
-            .map_err(|_| ApiError::InternalServerError("failed to fetch webhooks".to_string()))?;
-        let created_at: String = row
-            .get(2)
-            .map_err(|_| ApiError::InternalServerError("failed to fetch webhooks".to_string()))?;
+        let name: String = row.get(1).map_err(|err| {
+            error!("Failed to get webhook name: {}", err);
+            ApiError::InternalServerError("failed to fetch webhooks".to_string())
+        })?;
+        let created_at: String = row.get(2).map_err(|err| {
+            error!("Failed to get webhook created_at: {}", err);
+            ApiError::InternalServerError("failed to fetch webhooks".to_string())
+        })?;
 
         webhooks.push(Webhook {
             id,
@@ -135,14 +154,18 @@ pub async fn receive_webhook(
             libsql::params![webhook_id.clone()],
         )
         .await
-        .map_err(|_| {
+        .map_err(|err| {
+            error!("Failed to query a webhook {}", err);
             ApiError::InternalServerError("failed to save a webhook request".to_string())
         })?;
 
     if rows
         .next()
         .await
-        .map_err(|_| ApiError::InternalServerError("failed to save a webhook request".to_string()))?
+        .map_err(|err| {
+            error!("Failed to get next webhook {}", err);
+            ApiError::InternalServerError("failed to save a webhook request".to_string())
+        })?
         .is_none()
     {
         return Err(ApiError::InternalServerError(
@@ -162,7 +185,10 @@ pub async fn receive_webhook(
         ],
     )
     .await
-    .map_err(|_| ApiError::InternalServerError("failed to save a webhook request".to_string()))?;
+    .map_err(|err| {
+        error!("Failed to insert webhook request {}", err);
+        ApiError::InternalServerError("failed to save a webhook request".to_string())
+    })?;
 
     let mut notification = state.notification.lock().await;
 
@@ -175,7 +201,8 @@ pub async fn receive_webhook(
         received_at,
     };
 
-    let result_json = serde_json::to_string(&result).map_err(|_| {
+    let result_json = serde_json::to_string(&result).map_err(|err| {
+        error!("Failed to serialize webhook request {}", err);
         ApiError::InternalServerError("failed to save a webhook request".to_string())
     })?;
 
@@ -195,29 +222,39 @@ pub async fn get_webhook_requests(
             libsql::params![webhook_id],
         )
         .await
-        .map_err(|_| ApiError::InternalServerError("failed to fetch webhook requests".to_string()))?;
+        .map_err(|err| {
+            error!("Failed to fetch webhook requests {}", err);
+            ApiError::InternalServerError("failed to fetch webhook requests".to_string())
+        })?;
 
     let mut requests = Vec::new();
-    while let Some(row) = rows.next().await.map_err(|_| {
+    while let Some(row) = rows.next().await.map_err(|err| {
+        error!("Failed to fetch next webhook requests {}", err);
         ApiError::InternalServerError("failed to fetch webhook requests".to_string())
     })? {
         requests.push(WebhookRequest {
-            id: row.get(0).map_err(|_| {
+            id: row.get(0).map_err(|err| {
+                error!("Failed to fetch webhook request id {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
-            webhook_id: row.get(1).map_err(|_| {
+            webhook_id: row.get(1).map_err(|err| {
+                error!("Failed to fetch webhook request webhook_id {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
-            method: row.get(2).map_err(|_| {
+            method: row.get(2).map_err(|err| {
+                error!("Failed to fetch webhook request method {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
-            headers: row.get(3).map_err(|_| {
+            headers: row.get(3).map_err(|err| {
+                error!("Failed to fetch webhook request headers {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
-            body: row.get(4).map_err(|_| {
+            body: row.get(4).map_err(|err| {
+                error!("Failed to fetch webhook request body {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
-            received_at: row.get(5).map_err(|_| {
+            received_at: row.get(5).map_err(|err| {
+                error!("Failed to fetch webhook request received_at {}", err);
                 ApiError::InternalServerError("failed to fetch webhook requests".to_string())
             })?,
         });

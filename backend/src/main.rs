@@ -9,6 +9,7 @@ use libsql::Builder;
 use rust_embed::RustEmbed;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tracing::{info, Level};
 
 use hookspy::handlers::webhook::{
     create_webhook, delete_webhook, get_webhook_requests, list_webhooks, receive_webhook,
@@ -78,6 +79,10 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::DEBUG)
+        .init();
+
     let args = Args::parse();
 
     let db_path = args.database_path;
@@ -112,7 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .fallback(static_handler);
 
     let listener = tokio::net::TcpListener::bind(&args.address).await?;
-    println!("Server running on http://{}", args.address);
+    info!("Server running on http://{}", args.address);
 
     axum::serve(listener, app).await?;
 
