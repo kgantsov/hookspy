@@ -12,7 +12,8 @@ use tokio::sync::Mutex;
 use tracing::{info, Level};
 
 use hookspy::handlers::webhook::{
-    create_webhook, delete_webhook, get_webhook_requests, list_webhooks, receive_webhook,
+    create_webhook, delete_webhook, get_webhook, get_webhook_requests, list_webhooks,
+    receive_webhook,
 };
 use hookspy::model::db::init_db;
 use hookspy::notification::notification::Notification;
@@ -102,6 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/webhooks", post(create_webhook))
         .route("/webhooks", get(list_webhooks))
         .route("/webhooks/:webhook_id/requests", get(get_webhook_requests))
+        .route("/webhooks/:webhook_id", get(get_webhook))
         .route("/webhooks/:webhook_id", post(receive_webhook))
         .route("/webhooks/:webhook_id", delete(delete_webhook));
 

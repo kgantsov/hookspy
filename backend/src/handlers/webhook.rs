@@ -262,3 +262,56 @@ pub async fn get_webhook_requests(
 
     Ok(Json(requests))
 }
+
+pub async fn get_webhook(
+    State(state): State<AppState>,
+    Path(webhook_id): Path<String>,
+) -> Result<Json<Webhook>, ApiError> {
+    let db = state.db.lock().await;
+
+    let mut rows = db
+        .query(
+            "SELECT id, name, created_at FROM webhooks WHERE id = ?",
+            libsql::params![webhook_id.clone()],
+        )
+        .await
+        .map_err(|err| {
+            error!("Failed to query webhook: {} {}", webhook_id, err);
+            ApiError::InternalServerError("failed to get a webhook".to_string())
+        })?;
+
+    let row_opt = rows.next().await.map_err(|err| {
+        error!("Failed to get next row for webhook: {} {}", webhook_id, err);
+        ApiError::InternalServerError("failed to get a webhook".to_string())
+    })?;
+
+    let row = match row_opt {
+        Some(row) => row,
+        None => {
+            return Err(ApiError::NotFound("webhook not found".to_string()));
+        }
+    };
+
+    let id: String = row.get(0).map_err(|err| {
+        error!("Failed to fetch webhook id {}", err);
+        ApiError::InternalServerError("failed to get a webhook".to_string())
+    })?;
+    let name: String = row.get(1).map_err(|err| {
+        error!("Failed to fetch webhook name {}", err);
+        ApiError::InternalServerError("failed to get a webhook".to_string())
+    })?;
+    let created_at: String = row.get(2).map_err(|err| {
+        error!("Failed to fetch webhook created_at {}", err);
+        ApiError::InternalServerError("failed to get a webhook".to_string())
+    })?;
+    let url = construct_url(&state.domain, &id);
+
+    let webhook = Webhook {
+        id,
+        url,
+        name,
+        created_at,
+    };
+
+    Ok(Json(webhook))
+}
