@@ -41,6 +41,11 @@ header {
     border-bottom: 1px solid var(--border);
 }
 
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
 .logo {
     display: flex;
     align-items: center;

@@ -1,14 +1,18 @@
 use crate::components::create_webhook_modal::CreateWebhookModal;
+use crate::routes::Route;
 use gloo_net::http::Request;
 use web_sys::window;
+use yew::html::ChildrenProps;
 use yew::prelude::*;
+use yew_router::prelude::*;
 
-use crate::components::webhook_details::WebhookDetails;
 use crate::components::webhook_list::Webhook;
 use crate::components::webhook_list::WebhookList;
 
 #[component]
-pub fn WebhooksListPage() -> Html {
+pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
+    let navigator = use_navigator().unwrap();
+
     let webhooks = use_state(|| vec![]);
     {
         let webhooks = webhooks.clone();
@@ -42,13 +46,16 @@ pub fn WebhooksListPage() -> Html {
     let on_webhook_delete = {
         let selected_webhook = selected_webhook.clone();
         let webhooks = webhooks.clone();
+        let navigator = navigator.clone();
         Callback::from(move |webhook: Webhook| {
             if let Some(window) = window() {
                 let confirmation =
                     window.confirm_with_message("Are you sure you want to delete this webhook?");
                 if let Ok(true) = confirmation {
                     let selected_webhook = selected_webhook.clone();
+
                     let webhooks = webhooks.clone();
+                    let navigator = navigator.clone();
                     wasm_bindgen_futures::spawn_local(async move {
                         let response = Request::delete(&format!("/api/webhooks/{}", webhook.id))
                             .send()
@@ -64,6 +71,7 @@ pub fn WebhooksListPage() -> Html {
                                 .await
                                 .unwrap();
                             webhooks.set(fetched_webhooks);
+                            navigator.push(&Route::Webhooks);
                         }
                     });
                 }
@@ -77,7 +85,12 @@ pub fn WebhooksListPage() -> Html {
                 <header>
                     <div class="logo">
                         <div class="logo-icon">{ "🪝" }</div>
-                        <span>{ "HookSpy" }</span>
+                        <span>
+                            <Link<Route> to={Route::Webhooks}>
+                                { "HookSpy" }
+                            </Link<Route>>
+                        </span>
+
                     </div>
                     <button
                     class="btn btn-primary"
@@ -105,9 +118,7 @@ pub fn WebhooksListPage() -> Html {
                     </aside>
                     <main class="main-content">
 
-                        if let Some(webhook) = &*selected_webhook {
-                            <WebhookDetails webhook={webhook.clone()} />
-                        }
+                        { props.children.clone() } // ← routed content
 
                     </main>
                 </div>

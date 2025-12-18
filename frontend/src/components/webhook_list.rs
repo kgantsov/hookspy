@@ -1,5 +1,8 @@
 use serde::Deserialize;
 use yew::prelude::*;
+use yew_router::prelude::Link;
+
+use crate::routes::Route;
 
 #[derive(Clone, PartialEq, Deserialize)]
 pub struct Webhook {
@@ -40,20 +43,22 @@ pub fn WebhookList(
         <div class="webhook-list">
             { for webhooks.iter().map(|webhook| {
                 html! {
-                    <div key={webhook.id.clone()} class="webhook-item" onclick={on_select(webhook)}>
-                        <div class="webhook-info">
-                            <div class="webhook-name">{webhook.name.clone()}</div>
-                            <div class="webhook-id">{webhook.id.clone()}</div>
+                    <Link<Route> to={Route::Webhook { webhook_id: webhook.id.clone() }}>
+                        <div key={webhook.id.clone()} class="webhook-item" onclick={on_select(webhook)}>
+                            <div class="webhook-info">
+                                <div class="webhook-name">{webhook.name.clone()}</div>
+                                <div class="webhook-id">{webhook.id.clone()}</div>
+                            </div>
+                            <div class="webhook-actions">
+                                <button
+                                    class="icon-btn danger"
+                                    onclick={on_delete_callback(webhook)}
+                                >
+                                    {"🗑️"}
+                                </button>
+                            </div>
                         </div>
-                        <div class="webhook-actions">
-                            <button
-                                class="icon-btn danger"
-                                onclick={on_delete_callback(webhook)}
-                            >
-                                {"🗑️"}
-                            </button>
-                        </div>
-                    </div>
+                    </Link<Route>>
                 }
             })}
         </div>
