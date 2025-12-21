@@ -18,6 +18,10 @@ use hookspy::handlers::webhook::{
 use hookspy::model::db::init_db;
 use hookspy::notification::notification::Notification;
 use hookspy::{app::AppState, handlers::ws::webhook_notifications_ws};
+use hookspy::{
+    config::init_config,
+    handlers::auth::{callback, login},
+};
 
 #[derive(RustEmbed)]
 #[folder = "../frontend/dist"]
@@ -92,10 +96,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     init_db(&db).await?;
 
+    let config = init_config();
+
     let state = AppState {
         db: Arc::new(Mutex::new(db)),
         notification: Arc::new(Mutex::new(Notification::new())),
         domain: args.domain,
+        config,
     };
 
     let api_routes = Router::new()
@@ -105,7 +112,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/webhooks/:webhook_id/requests", get(get_webhook_requests))
         .route("/webhooks/:webhook_id", get(get_webhook))
         .route("/webhooks/:webhook_id", post(receive_webhook))
-        .route("/webhooks/:webhook_id", delete(delete_webhook));
+        .route("/webhooks/:webhook_id", delete(delete_webhook))
+        .route("/auth/callback", get(callback))
+        .route("/auth/login", get(login));
 
     let ws_routes = Router::new().route(
         "/webhooks/:webhook_id/notifications",

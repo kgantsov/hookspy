@@ -5,12 +5,12 @@ use axum::{
 };
 use uuid::Uuid;
 
-use tracing::error;
+use tracing::{error, info};
 
-use crate::app::AppState;
 use crate::handlers::error::ApiError;
 use crate::model::webhook::Webhook;
 use crate::schema::webhook::{CreateWebhookRequest, WebhookRequest};
+use crate::{app::AppState, auth::jwt::AuthUser};
 
 fn construct_url(domain: &str, id: &str) -> String {
     format!("{}/api/webhooks/{}", domain, id)
@@ -18,6 +18,7 @@ fn construct_url(domain: &str, id: &str) -> String {
 
 pub async fn create_webhook(
     State(state): State<AppState>,
+    AuthUser(user): AuthUser,
     Json(payload): Json<CreateWebhookRequest>,
 ) -> Result<Json<Webhook>, ApiError> {
     let id = Uuid::new_v4().to_string();
@@ -25,8 +26,13 @@ pub async fn create_webhook(
 
     let db = state.db.lock().await;
     db.execute(
-        "INSERT INTO webhooks (id, name, created_at) VALUES (?, ?, ?)",
-        libsql::params![id.clone(), payload.name.clone(), created_at.clone()],
+        "INSERT INTO webhooks (id, user_id, name, created_at) VALUES (?, ?, ?, ?)",
+        libsql::params![
+            id.clone(),
+            user.sub,
+            payload.name.clone(),
+            created_at.clone()
+        ],
     )
     .await
     .map_err(|err| {
@@ -46,14 +52,15 @@ pub async fn create_webhook(
 
 pub async fn delete_webhook(
     State(state): State<AppState>,
+    AuthUser(user): AuthUser,
     Path(webhook_id): Path<String>,
 ) -> Result<(), ApiError> {
     let db = state.db.lock().await;
 
     let mut rows = db
         .query(
-            "SELECT id FROM webhooks WHERE id = ?",
-            libsql::params![webhook_id.clone()],
+            "SELECT id FROM webhooks WHERE user_id = ? AND id = ?",
+            libsql::params![user.sub.clone(), webhook_id.clone()],
         )
         .await
         .map_err(|err| {
@@ -74,8 +81,8 @@ pub async fn delete_webhook(
     }
 
     db.execute(
-        "DELETE FROM webhooks WHERE id = ?",
-        libsql::params![webhook_id.clone()],
+        "DELETE FROM webhooks WHERE user_id = ? AND id = ?",
+        libsql::params![user.sub, webhook_id.clone()],
     )
     .await
     .map_err(|err| {
@@ -86,12 +93,15 @@ pub async fn delete_webhook(
     Ok(())
 }
 
-pub async fn list_webhooks(State(state): State<AppState>) -> Result<Json<Vec<Webhook>>, ApiError> {
+pub async fn list_webhooks(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+) -> Result<Json<Vec<Webhook>>, ApiError> {
     let db = state.db.lock().await;
     let mut rows = db
         .query(
-            "SELECT id, name, created_at FROM webhooks ORDER BY created_at DESC",
-            (),
+            "SELECT id, name, created_at FROM webhooks WHERE user_id = ? ORDER BY created_at DESC",
+            &[user.sub],
         )
         .await
         .map_err(|err| {
@@ -213,6 +223,7 @@ pub async fn receive_webhook(
 
 pub async fn get_webhook_requests(
     State(state): State<AppState>,
+    AuthUser(_user): AuthUser,
     Path(webhook_id): Path<String>,
 ) -> Result<Json<Vec<WebhookRequest>>, ApiError> {
     let db = state.db.lock().await;
@@ -265,14 +276,15 @@ pub async fn get_webhook_requests(
 
 pub async fn get_webhook(
     State(state): State<AppState>,
+    AuthUser(user): AuthUser,
     Path(webhook_id): Path<String>,
 ) -> Result<Json<Webhook>, ApiError> {
     let db = state.db.lock().await;
 
     let mut rows = db
         .query(
-            "SELECT id, name, created_at FROM webhooks WHERE id = ?",
-            libsql::params![webhook_id.clone()],
+            "SELECT id, name, created_at FROM webhooks WHERE user_id = ? AND id = ?",
+            libsql::params![user.sub, webhook_id.clone()],
         )
         .await
         .map_err(|err| {
