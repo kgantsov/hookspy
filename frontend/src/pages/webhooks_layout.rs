@@ -19,14 +19,28 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
         use_effect_with((), move |_| {
             let webhooks = webhooks.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let fetched_webhooks: Vec<Webhook> = Request::get("/api/webhooks")
-                    .send()
-                    .await
-                    .unwrap()
-                    .json()
-                    .await
-                    .unwrap();
-                webhooks.set(fetched_webhooks);
+                let resp = Request::get("/api/webhooks").send().await;
+
+                match resp {
+                    Ok(resp) => {
+                        if resp.status() == 401 {
+                            if let Some(win) = window() {
+                                let _ = win.location().set_href("/login");
+                            }
+                        } else {
+                            let fetched_webhooks: Result<Vec<Webhook>, _> = resp.json().await;
+                            match fetched_webhooks {
+                                Ok(fetched_webhooks) => webhooks.set(fetched_webhooks),
+                                Err(err) => web_sys::console::log_1(
+                                    &format!("Error fetching webhooks: {}", err).into(),
+                                ),
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        web_sys::console::log_1(&format!("Error fetching webhook: {}", err).into())
+                    }
+                }
             });
             || ()
         });
@@ -61,17 +75,29 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                             .send()
                             .await;
                         if response.is_ok() {
-                            selected_webhook.set(None);
+                            match response {
+                                Ok(response) => {
+                                    if response.status() == 401 {
+                                        let _ = window.location().set_href("/login");
+                                    }
 
-                            let fetched_webhooks: Vec<Webhook> = Request::get("/api/webhooks")
-                                .send()
-                                .await
-                                .unwrap()
-                                .json()
-                                .await
-                                .unwrap();
-                            webhooks.set(fetched_webhooks);
-                            navigator.push(&Route::Webhooks);
+                                    selected_webhook.set(None);
+
+                                    let fetched_webhooks: Vec<Webhook> =
+                                        Request::get("/api/webhooks")
+                                            .send()
+                                            .await
+                                            .unwrap()
+                                            .json()
+                                            .await
+                                            .unwrap();
+                                    webhooks.set(fetched_webhooks);
+                                    navigator.push(&Route::Webhooks);
+                                }
+                                Err(_) => {
+                                    selected_webhook.set(None);
+                                }
+                            }
                         }
                     });
                 }
@@ -131,15 +157,29 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     move |_| {create_webhook_modal_is_open.set(false);
                         let webhooks = webhooks.clone();
                         wasm_bindgen_futures::spawn_local(async move {
-                            let fetched_webhooks: Vec<Webhook> = Request::get("/api/webhooks")
+                            let resp = Request::get("/api/webhooks")
                                 .send()
-                                .await
-                                .unwrap()
-                                .json()
-                                .await
-                                .unwrap();
-                            webhooks.set(fetched_webhooks);
-                        });}
+                                .await;
+
+                            match resp {
+                                Ok(response) => {
+                                    let fetched_webhooks: Result<Vec<Webhook>, _> = response.json().await;
+
+                                    match fetched_webhooks {
+                                        Ok(fetched_webhooks) => {
+                                            webhooks.set(fetched_webhooks);
+                                        },
+                                        Err(error) => {
+                                            web_sys::console::log_1(&format!("Error fetching webhooks: {}", error).into())
+                                        }
+                                    }
+                                },
+                                Err(error) => {
+                                    web_sys::console::log_1(&format!("Error fetching webhooks: {}", error).into())
+                                }
+                            }
+                        });
+                    }
                 }
             />
         </>

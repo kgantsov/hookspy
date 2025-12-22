@@ -39,15 +39,32 @@ pub fn WebhookRequestList(
             let webhook_requests = webhook_requests.clone();
             let webhook_id = webhook_id.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let fetched_webhook_requests: Vec<WebhookRequest> =
-                    Request::get(format!("/api/webhooks/{}/requests", webhook_id).as_str())
-                        .send()
-                        .await
-                        .unwrap()
-                        .json()
-                        .await
-                        .unwrap();
-                webhook_requests.set(fetched_webhook_requests);
+                let resp = Request::get(format!("/api/webhooks/{}/requests", webhook_id).as_str())
+                    .send()
+                    .await;
+                match resp {
+                    Ok(resp) => {
+                        if resp.status() == 401 {
+                            if let Some(win) = window() {
+                                let _ = win.location().set_href("/login");
+                            }
+                        } else {
+                            let fetched_webhook_requests: Result<Vec<WebhookRequest>, _> =
+                                resp.json().await;
+                            match fetched_webhook_requests {
+                                Ok(fetched_webhook_requests) => {
+                                    webhook_requests.set(fetched_webhook_requests)
+                                }
+                                Err(err) => web_sys::console::log_1(
+                                    &format!("Error fetching webhook requests: {}", err).into(),
+                                ),
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        web_sys::console::log_1(&format!("Error fetching webhook: {}", err).into())
+                    }
+                }
             });
             || ()
         });
@@ -78,7 +95,11 @@ pub fn WebhookRequestList(
                             .send()
                             .await
                             {
-                                if let Ok(data) = resp.json().await {
+                                if resp.status() == 401 {
+                                    if let Some(win) = window() {
+                                        let _ = win.location().set_href("/login");
+                                    }
+                                } else if let Ok(data) = resp.json().await {
                                     webhook_requests.set(data);
                                 }
                             }

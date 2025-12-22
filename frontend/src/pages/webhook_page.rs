@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use web_sys::window;
 use yew::prelude::*;
 
 use crate::components::webhook_details::WebhookDetails;
@@ -18,15 +19,32 @@ pub fn WebhookPage(WebhookPageProps { webhook_id }: &WebhookPageProps) -> Html {
         use_effect_with(webhook_id.clone(), move |_| {
             let webhook = webhook.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let fetched_webhook: Webhook =
-                    Request::get(&format!("/api/webhooks/{}", webhook_id))
-                        .send()
-                        .await
-                        .unwrap()
-                        .json()
-                        .await
-                        .unwrap();
-                webhook.set(Some(fetched_webhook));
+                let resp = Request::get(&format!("/api/webhooks/{}", webhook_id))
+                    .send()
+                    .await;
+
+                match resp {
+                    Ok(resp) => {
+                        if resp.status() == 401 {
+                            if let Some(win) = window() {
+                                let _ = win.location().set_href("/login");
+                            }
+                        } else {
+                            let fetched_webhook: Result<Webhook, _> = resp.json().await;
+                            match fetched_webhook {
+                                Ok(fetched_webhook) => {
+                                    webhook.set(Some(fetched_webhook));
+                                }
+                                Err(err) => web_sys::console::log_1(
+                                    &format!("Error parsing webhook: {}", err).into(),
+                                ),
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        web_sys::console::log_1(&format!("Error fetching webhook: {}", err).into())
+                    }
+                }
             });
             || ()
         });
