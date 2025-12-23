@@ -15,8 +15,8 @@ use crate::{
         google::fetch_google_userinfo,
         jwt::{generate_app_jwt, set_auth_cookie},
         oauth2::{load_pkce_verifier, save_csrf_token, save_pkce_verifier, verify_csrf},
-        user::{create_user, get_user},
     },
+    dao::user::UserDao,
 };
 
 pub async fn login(State(state): State<AppState>) -> Redirect {
@@ -103,16 +103,22 @@ pub async fn callback(
 
             let db_guard = state.db.lock().await;
 
-            let user = match get_user(db_guard.clone(), &userinfo.email).await {
+            let user_dao = UserDao;
+
+            let user = match user_dao
+                .get_user_by_email(db_guard.clone(), &userinfo.email)
+                .await
+            {
                 Result::Ok(user) => user,
                 Result::Err(_err) => {
-                    let user = create_user(
-                        db_guard.clone(),
-                        &userinfo.email,
-                        userinfo.given_name.as_deref().unwrap_or(""),
-                        userinfo.family_name.as_deref().unwrap_or(""),
-                    )
-                    .await;
+                    let user = user_dao
+                        .create_user(
+                            db_guard.clone(),
+                            &userinfo.email,
+                            userinfo.given_name.as_deref().unwrap_or(""),
+                            userinfo.family_name.as_deref().unwrap_or(""),
+                        )
+                        .await;
 
                     match user {
                         Result::Ok(user) => {
