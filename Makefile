@@ -9,7 +9,7 @@ build_backend: build_frontend
 build: build_backend
 
 start_backend:
-	cd backend && cargo run
+	cd backend && cargo run -- -d  http://localhost:8080
 
 start_frontend:
 	cd frontend && trunk serve

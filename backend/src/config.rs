@@ -13,9 +13,10 @@ pub fn init_config() -> Config {
     let oauth_client_id = std::env::var("OAUTH_CLIENT_ID").expect("OAUTH_CLIENT_ID must be set");
     let oauth_client_secret =
         std::env::var("OAUTH_CLIENT_SECRET").expect("OAUTH_CLIENT_SECRET must be set");
-    let oauth_auth_url = std::env::var("AUTH_URL").expect("AUTH_URL must be set");
-    let oauth_token_url = std::env::var("TOKEN_URL").expect("TOKEN_URL must be set");
-    let oauth_redirect_url = std::env::var("REDIRECT_URL").expect("REDIRECT_URL must be set");
+    let oauth_auth_url = std::env::var("OAUTH_AUTH_URL").expect("OAUTH_AUTH_URL must be set");
+    let oauth_token_url = std::env::var("OAUTH_TOKEN_URL").expect("OAUTH_TOKEN_URL must be set");
+    let oauth_redirect_url =
+        std::env::var("OAUTH_REDIRECT_URL").expect("OAUTH_REDIRECT_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
     Config {
