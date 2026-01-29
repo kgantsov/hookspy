@@ -208,6 +208,8 @@ a {
     border-radius: 12px;
     padding: 2rem;
     min-height: 600px;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .content-header {
@@ -283,6 +285,7 @@ a {
     border-radius: 8px;
     overflow: hidden;
     transition: all 0.2s;
+    min-width: 0;
 }
 
 .request-card:hover {
@@ -334,6 +337,7 @@ a {
 .request-body {
     display: none;
     border-top: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .request-card.expanded .request-body {
@@ -343,6 +347,8 @@ a {
 .request-section {
     padding: 1.25rem;
     border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    min-width: 0;
 }
 
 .request-section:last-child {
@@ -366,7 +372,13 @@ a {
     font-family: "Courier New", monospace;
     font-size: 0.8125rem;
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 500px;
+    max-width: 100%;
     line-height: 1.5;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
 }
 
 .key-value-list {
