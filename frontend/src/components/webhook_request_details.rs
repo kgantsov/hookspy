@@ -24,6 +24,14 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
 
     let headers: Result<HashMap<String, String>, _> = serde_json::from_str(&props.request.headers);
 
+    // Try to parse and pretty-print the body if it's JSON
+    let formatted_body =
+        if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&props.request.body) {
+            serde_json::to_string_pretty(&json_value).unwrap_or_else(|_| props.request.body.clone())
+        } else {
+            props.request.body.clone()
+        };
+
     let expanded_class = if *expanded { "expanded" } else { "" };
 
     let onclick = {
@@ -69,7 +77,11 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                                         }
                                     }).collect::<Html>()
                                 },
-                                Err(_) => html! { <div class="key-value-item"><span class="key">{ "Invalid headers" }</span></div> },
+                                Err(_) => html! {
+                                    <div class="key-value-item">
+                                        <span class="key">{ "Invalid headers" }</span>
+                                    </div>
+                                },
                             }
                         }
                     </div>
@@ -77,7 +89,7 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                 <div class="request-section">
                     <div class="section-title">{ "Body" }</div>
                     <pre class="code-block">
-                        { props.request.body.clone() }
+                        { formatted_body }
                     </pre>
                 </div>
             </div>
