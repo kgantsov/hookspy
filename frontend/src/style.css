@@ -32,6 +32,12 @@ body {
     padding: 2rem;
 }
 
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+}
+
 header {
     display: flex;
     justify-content: space-between;
@@ -39,6 +45,13 @@ header {
     margin-bottom: 3rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+    header {
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+    }
 }
 
 a {
@@ -522,10 +535,71 @@ a {
 @media (max-width: 1024px) {
     .layout {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
     .sidebar {
         position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .sidebar-header {
+        margin-bottom: 1rem;
+    }
+
+    .main-content {
+        padding: 1rem;
+        border-radius: 8px;
+        min-height: unset;
+    }
+
+    .content-header {
+        margin-bottom: 1rem;
+    }
+
+    .search-filter {
+        margin-bottom: 1rem;
+    }
+
+    .key-value-item {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .endpoint-display {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .copy-btn {
+        margin-left: 0;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .request-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .request-section {
+        padding: 1rem;
+    }
+
+    .modal-content {
+        padding: 1.5rem 1rem;
+        border-radius: 10px;
     }
 }
 .auth-page {
