@@ -1,8 +1,8 @@
 use crate::{config::Config, notification::notification::Notification};
 
-use libsql::Connection;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use turso::Connection;
 
 #[derive(Clone)]
 pub struct AppState {

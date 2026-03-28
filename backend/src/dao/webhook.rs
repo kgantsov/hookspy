@@ -14,7 +14,7 @@ impl WebhookDao {
 
     pub async fn create_webhook(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         user_id: &str,
         name: &str,
     ) -> anyhow::Result<Webhook> {
@@ -23,7 +23,7 @@ impl WebhookDao {
 
         db.execute(
             "INSERT INTO webhooks (id, user_id, name, created_at) VALUES (?, ?, ?, ?)",
-            libsql::params![id.clone(), user_id, name, created_at.clone()],
+            turso::params![id.clone(), user_id, name, created_at.clone()],
         )
         .await?;
 
@@ -36,16 +36,17 @@ impl WebhookDao {
             created_at,
         })
     }
+
     pub async fn get_webhook(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         user_id: &str,
         id: &str,
     ) -> anyhow::Result<Webhook> {
         let mut rows = db
             .query(
                 "SELECT id, name, created_at FROM webhooks WHERE user_id = ? AND id = ?",
-                libsql::params![user_id, id],
+                turso::params![user_id, id],
             )
             .await?;
 
@@ -75,13 +76,13 @@ impl WebhookDao {
 
     pub async fn get_webhooks(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         user_id: &str,
     ) -> anyhow::Result<Vec<Webhook>> {
         let mut rows = db
             .query(
                 "SELECT id, name, created_at FROM webhooks WHERE user_id = ? ORDER BY created_at DESC LIMIT 100",
-                libsql::params![user_id],
+                turso::params![user_id],
             )
             .await?;
 
@@ -108,13 +109,13 @@ impl WebhookDao {
 
     pub async fn delete_webhook(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         user_id: &str,
         id: &str,
     ) -> anyhow::Result<()> {
         db.execute(
             "DELETE FROM webhooks WHERE user_id = ? AND id = ?",
-            libsql::params![user_id, id],
+            turso::params![user_id, id],
         )
         .await?;
 
@@ -123,7 +124,7 @@ impl WebhookDao {
 
     pub async fn create_webhook_request(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         webhook_id: String,
         headers_json: String,
         body: String,
@@ -135,17 +136,17 @@ impl WebhookDao {
         let mut rows = db
             .query(
                 "SELECT id FROM webhooks WHERE id = ?",
-                libsql::params![webhook_id.clone()],
+                turso::params![webhook_id.clone()],
             )
             .await?;
 
         if rows.next().await?.is_none() {
-            return Err(anyhow::anyhow!("webhook not found".to_string(),));
+            return Err(anyhow::anyhow!("webhook not found".to_string()));
         }
 
         db.execute(
             "INSERT INTO webhook_requests (id, webhook_id, method, headers, body, received_at) VALUES (?, ?, ?, ?, ?, ?)",
-            libsql::params![
+            turso::params![
                 id.clone(),
                 webhook_id.clone(),
                 "POST",
@@ -168,13 +169,13 @@ impl WebhookDao {
 
     pub async fn get_webhook_requests(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         webhook_id: &str,
     ) -> anyhow::Result<Vec<WebhookRequest>> {
         let mut rows = db
             .query(
                 "SELECT id, webhook_id, method, headers, body, received_at FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
-                libsql::params![webhook_id],
+                turso::params![webhook_id],
             )
             .await?;
 

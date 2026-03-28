@@ -8,7 +8,7 @@ pub struct UserDao;
 impl UserDao {
     pub async fn create_user(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         email: &str,
         first_name: &str,
         last_name: &str,
@@ -23,7 +23,7 @@ impl UserDao {
 
         db.execute(
             "INSERT INTO users (id, email, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?)",
-            libsql::params![id.clone(), email, first_name, last_name, created_at.clone()],
+            turso::params![id.clone(), email, first_name, last_name, created_at.clone()],
         )
         .await?;
 
@@ -38,13 +38,13 @@ impl UserDao {
 
     pub async fn get_user_by_email(
         &self,
-        db: libsql::Connection,
+        db: turso::Connection,
         email: &str,
     ) -> anyhow::Result<User> {
         let mut rows = db
             .query(
                 "SELECT id, first_name, last_name, email, created_at FROM users WHERE email = ?",
-                libsql::params![email],
+                turso::params![email],
             )
             .await?;
 

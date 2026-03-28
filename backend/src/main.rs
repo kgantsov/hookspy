@@ -5,11 +5,11 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use libsql::Builder;
 use rust_embed::RustEmbed;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, Level};
+use turso::Builder;
 
 use hookspy::handlers::webhook::{
     create_webhook, delete_webhook, get_webhook, get_webhook_requests, list_webhooks,
@@ -90,9 +90,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args = Args::parse();
 
-    let db_path = args.database_path;
-
-    let db = Builder::new_local(db_path).build().await?.connect()?;
+    let db = Builder::new_local(&args.database_path)
+        .build()
+        .await?
+        .connect()?;
 
     init_db(&db).await?;
 
