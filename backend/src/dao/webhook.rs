@@ -80,7 +80,7 @@ impl WebhookDao {
     ) -> anyhow::Result<Vec<Webhook>> {
         let mut rows = db
             .query(
-                "SELECT id, name, created_at FROM webhooks WHERE user_id = ?",
+                "SELECT id, name, created_at FROM webhooks WHERE user_id = ? ORDER BY created_at DESC",
                 libsql::params![user_id],
             )
             .await?;
