@@ -17,6 +17,7 @@ pub struct WebhookListProps {
     pub webhooks: Vec<Webhook>,
     pub on_click: Callback<Webhook>,
     pub on_delete: Callback<Webhook>,
+    pub selected_webhook_id: Option<String>,
 }
 
 #[component]
@@ -25,6 +26,7 @@ pub fn WebhookList(
         webhooks,
         on_click,
         on_delete,
+        selected_webhook_id,
     }: &WebhookListProps,
 ) -> Html {
     let on_select = |webhook: &Webhook| {
@@ -42,9 +44,16 @@ pub fn WebhookList(
     html! {
         <div class="webhook-list">
             { for webhooks.iter().map(|webhook| {
+                let is_active = selected_webhook_id.as_deref() == Some(webhook.id.as_str());
+                let item_class = if is_active {
+                    "webhook-item active"
+                } else {
+                    "webhook-item"
+                };
+
                 html! {
                     <Link<Route> to={Route::Webhook { webhook_id: webhook.id.clone() }}>
-                        <div key={webhook.id.clone()} class="webhook-item" onclick={on_select(webhook)}>
+                        <div key={webhook.id.clone()} class={item_class} onclick={on_select(webhook)}>
                             <div class="webhook-info">
                                 <div class="webhook-name">{webhook.name.clone()}</div>
                                 <div class="webhook-id">{webhook.id.clone()}</div>

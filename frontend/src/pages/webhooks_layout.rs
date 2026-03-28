@@ -1,5 +1,6 @@
 use crate::components::create_webhook_modal::CreateWebhookModal;
 use crate::routes::Route;
+
 use gloo_net::http::Request;
 use web_sys::window;
 use yew::html::ChildrenProps;
@@ -12,6 +13,11 @@ use crate::components::webhook_list::WebhookList;
 #[component]
 pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
     let navigator = use_navigator().unwrap();
+    let route = use_route::<Route>();
+    let selected_webhook_id = match &route {
+        Some(Route::Webhook { webhook_id }) => Some(webhook_id.clone()),
+        _ => None,
+    };
 
     let webhooks = use_state(|| vec![]);
     {
@@ -140,6 +146,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                             webhooks={(*webhooks).clone()}
                             on_click={on_webhook_select}
                             on_delete={on_webhook_delete}
+                            selected_webhook_id={selected_webhook_id}
                         />
                     </aside>
                     <main class="main-content">
