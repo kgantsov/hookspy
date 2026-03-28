@@ -1,5 +1,5 @@
 use chrono::TimeZone;
-use chrono_humanize::{Accuracy, HumanTime, Tense};
+use chrono_humanize::HumanTime;
 use serde::Deserialize;
 use std::collections::HashMap;
 use yew::prelude::*;
@@ -49,23 +49,23 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                     <span class="method-badge method-post">
                         { props.request.method.clone() }
                     </span>
-                    <span class="request-time"
-                        title={
+                    <span class="request-time">
+                        {
                             match chrono::DateTime::parse_from_rfc3339(&props.request.received_at) {
                                 Ok(dt) => {
                                     let offset_minutes = js_sys::Date::new_0().get_timezone_offset() as i32;
                                     let offset = chrono::FixedOffset::west_opt(offset_minutes * 60).unwrap();
                                     let local_dt = offset.from_utc_datetime(&dt.naive_utc());
-                                    local_dt.format("%Y-%m-%d %H:%M:%S%.3f").to_string()
+                                    let precise = local_dt.format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+                                    let relative = HumanTime::from(dt).to_string();
+                                    html! {
+                                        <span class="request-time-block">
+                                            <span class="request-time-precise">{ precise }</span>
+                                            <span class="request-time-relative">{ relative }</span>
+                                        </span>
+                                    }
                                 },
-                                Err(_) => props.request.received_at.clone(),
-                            }
-                        }
-                    >
-                        {
-                            match chrono::DateTime::parse_from_rfc3339(&props.request.received_at) {
-                                Ok(dt) => HumanTime::from(dt).to_text_en(Accuracy::Rough, Tense::Past),
-                                Err(_) => props.request.received_at.clone(),
+                                Err(_) => html! { <>{props.request.received_at.clone()}</> },
                             }
                         }
                     </span>
