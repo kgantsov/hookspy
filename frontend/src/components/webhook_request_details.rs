@@ -12,6 +12,7 @@ pub struct WebhookRequest {
     pub headers: String,
     pub body: String,
     pub received_at: String,
+    pub caller_ip: Option<String>,
 }
 
 #[derive(Properties, PartialEq)]
@@ -73,6 +74,22 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                 <span class="expand-icon">{ "▼" }</span>
             </div>
             <div class="request-body">
+                {
+                    if let Some(ref ip) = props.request.caller_ip {
+                        html! {
+                            <div class="request-section">
+                                <div class="section-title">{ "Caller IP" }</div>
+                                <div class="key-value-list">
+                                    <div class="key-value-item">
+                                        <span class="value">{ ip.clone() }</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    } else {
+                        html! {}
+                    }
+                }
                 <div class="request-section">
                     <div class="section-title">{ "Headers" }</div>
                     <div class="key-value-list">

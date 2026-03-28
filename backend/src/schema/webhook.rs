@@ -13,4 +13,5 @@ pub struct WebhookRequest {
     pub headers: String,
     pub body: String,
     pub received_at: String,
+    pub caller_ip: Option<String>,
 }

@@ -128,6 +128,7 @@ impl WebhookDao {
         webhook_id: String,
         headers_json: String,
         body: String,
+        caller_ip: Option<String>,
     ) -> anyhow::Result<WebhookRequest> {
         let id = uuid::Uuid::new_v4().to_string();
         let received_at = chrono::Utc::now().to_rfc3339();
@@ -145,14 +146,15 @@ impl WebhookDao {
         }
 
         db.execute(
-            "INSERT INTO webhook_requests (id, webhook_id, method, headers, body, received_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO webhook_requests (id, webhook_id, method, headers, body, received_at, caller_ip) VALUES (?, ?, ?, ?, ?, ?, ?)",
             turso::params![
                 id.clone(),
                 webhook_id.clone(),
                 "POST",
                 headers_json.clone(),
                 body.clone(),
-                received_at.clone()
+                received_at.clone(),
+                caller_ip.clone()
             ],
         )
         .await?;
@@ -164,6 +166,7 @@ impl WebhookDao {
             headers: headers_json,
             body,
             received_at,
+            caller_ip,
         })
     }
 
@@ -174,7 +177,7 @@ impl WebhookDao {
     ) -> anyhow::Result<Vec<WebhookRequest>> {
         let mut rows = db
             .query(
-                "SELECT id, webhook_id, method, headers, body, received_at FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
+                "SELECT id, webhook_id, method, headers, body, received_at, caller_ip FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
                 turso::params![webhook_id],
             )
             .await?;
@@ -187,6 +190,7 @@ impl WebhookDao {
             let headers = row.get(3)?;
             let body = row.get(4)?;
             let received_at = row.get(5)?;
+            let caller_ip = row.get(6)?;
 
             requests.push(WebhookRequest {
                 id,
@@ -195,6 +199,7 @@ impl WebhookDao {
                 headers,
                 body,
                 received_at,
+                caller_ip,
             });
         }
 

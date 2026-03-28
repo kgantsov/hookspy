@@ -6,6 +6,7 @@ use axum::{
 };
 use clap::Parser;
 use rust_embed::RustEmbed;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, Level};
@@ -131,7 +132,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind(&args.address).await?;
     info!("Server running on http://{}", args.address);
 
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

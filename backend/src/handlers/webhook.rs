@@ -1,8 +1,9 @@
 use axum::{
-    extract::{Path, State},
+    extract::{ConnectInfo, Path, State},
     http::HeaderMap,
     response::Json,
 };
+use std::net::SocketAddr;
 
 use tracing::error;
 
@@ -110,9 +111,17 @@ pub async fn delete_webhook(
 pub async fn receive_webhook(
     State(state): State<AppState>,
     Path(webhook_id): Path<String>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
     body: String,
 ) -> Result<Json<WebhookRequest>, ApiError> {
+    // Prefer X-Forwarded-For (set by proxies) over the direct socket address
+    let caller_ip = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.split(',').next().unwrap_or(s).trim().to_string())
+        .unwrap_or_else(|| addr.ip().to_string());
+
     // Convert HeaderMap to a serializable HashMap
     let headers_map: std::collections::HashMap<String, String> = headers
         .iter()
@@ -132,6 +141,7 @@ pub async fn receive_webhook(
             webhook_id.clone(),
             headers_json.clone(),
             body.clone(),
+            Some(caller_ip),
         )
         .await
         .map_err(|err| {

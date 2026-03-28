@@ -32,11 +32,16 @@ pub async fn init_db(conn: &Connection) -> Result<(), turso::Error> {
             headers TEXT NOT NULL,
             body TEXT NOT NULL,
             received_at TEXT NOT NULL,
+            caller_ip TEXT,
             FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
         )",
         (),
     )
     .await?;
+
+    conn.execute("ALTER TABLE webhook_requests ADD COLUMN caller_ip TEXT", ())
+        .await
+        .ok(); // Ignore error if column already exists
 
     Ok(())
 }
