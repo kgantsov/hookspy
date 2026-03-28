@@ -1,3 +1,4 @@
+use chrono_humanize::HumanTime;
 use serde::Deserialize;
 use yew::prelude::*;
 use yew_router::prelude::Link;
@@ -57,6 +58,14 @@ pub fn WebhookList(
                             <div class="webhook-info">
                                 <div class="webhook-name">{webhook.name.clone()}</div>
                                 <div class="webhook-id">{webhook.id.clone()}</div>
+                                <div class="webhook-created-at">
+                                    {
+                                        match chrono::DateTime::parse_from_rfc3339(&webhook.created_at) {
+                                            Ok(dt) => format!("Created {}", HumanTime::from(dt)),
+                                            Err(_) => format!("Created {}", webhook.created_at),
+                                        }
+                                    }
+                                </div>
                             </div>
                             <div class="webhook-actions">
                                 <button

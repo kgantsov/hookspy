@@ -193,6 +193,13 @@ a {
     font-family: "Courier New", monospace;
 }
 
+.webhook-created-at {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    opacity: 0.75;
+}
+
 .webhook-actions {
     display: flex;
     gap: 0.5rem;
