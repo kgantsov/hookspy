@@ -4,6 +4,7 @@ use axum::{
     response::Json,
 };
 use std::net::SocketAddr;
+use std::time::Instant;
 
 use tracing::error;
 
@@ -115,6 +116,8 @@ pub async fn receive_webhook(
     headers: HeaderMap,
     body: String,
 ) -> Result<Json<WebhookRequest>, ApiError> {
+    let start = Instant::now();
+
     // Prefer X-Forwarded-For (set by proxies) over the direct socket address
     let caller_ip = headers
         .get("x-forwarded-for")
@@ -135,6 +138,8 @@ pub async fn receive_webhook(
         domain: state.domain.clone(),
     };
 
+    let duration_us = start.elapsed().as_micros() as u64;
+
     let webhook_request = webhook_dao
         .create_webhook_request(
             db.clone(),
@@ -142,6 +147,7 @@ pub async fn receive_webhook(
             headers_json.clone(),
             body.clone(),
             Some(caller_ip),
+            Some(duration_us),
         )
         .await
         .map_err(|err| {

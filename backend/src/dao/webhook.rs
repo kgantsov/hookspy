@@ -129,6 +129,7 @@ impl WebhookDao {
         headers_json: String,
         body: String,
         caller_ip: Option<String>,
+        duration_us: Option<u64>,
     ) -> anyhow::Result<WebhookRequest> {
         let id = uuid::Uuid::new_v4().to_string();
         let received_at = chrono::Utc::now().to_rfc3339();
@@ -146,7 +147,7 @@ impl WebhookDao {
         }
 
         db.execute(
-            "INSERT INTO webhook_requests (id, webhook_id, method, headers, body, received_at, caller_ip) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO webhook_requests (id, webhook_id, method, headers, body, received_at, caller_ip, duration_us) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             turso::params![
                 id.clone(),
                 webhook_id.clone(),
@@ -154,7 +155,8 @@ impl WebhookDao {
                 headers_json.clone(),
                 body.clone(),
                 received_at.clone(),
-                caller_ip.clone()
+                caller_ip.clone(),
+                duration_us.map(|d| d as i64)
             ],
         )
         .await?;
@@ -167,6 +169,7 @@ impl WebhookDao {
             body,
             received_at,
             caller_ip,
+            duration_us,
         })
     }
 
@@ -177,7 +180,7 @@ impl WebhookDao {
     ) -> anyhow::Result<Vec<WebhookRequest>> {
         let mut rows = db
             .query(
-                "SELECT id, webhook_id, method, headers, body, received_at, caller_ip FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
+                "SELECT id, webhook_id, method, headers, body, received_at, caller_ip, duration_us FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
                 turso::params![webhook_id],
             )
             .await?;
@@ -191,6 +194,7 @@ impl WebhookDao {
             let body = row.get(4)?;
             let received_at = row.get(5)?;
             let caller_ip = row.get(6)?;
+            let duration_us: Option<i64> = row.get(7)?;
 
             requests.push(WebhookRequest {
                 id,
@@ -200,6 +204,7 @@ impl WebhookDao {
                 body,
                 received_at,
                 caller_ip,
+                duration_us: duration_us.map(|d| d as u64),
             });
         }
 

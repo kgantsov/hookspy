@@ -13,6 +13,7 @@ pub struct WebhookRequest {
     pub body: String,
     pub received_at: String,
     pub caller_ip: Option<String>,
+    pub duration_us: Option<u64>,
 }
 
 #[derive(Properties, PartialEq)]
@@ -50,6 +51,24 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                     <span class="method-badge method-post">
                         { props.request.method.clone() }
                     </span>
+                    {
+                        if let Some(duration) = props.request.duration_us {
+                            let label = if duration < 1_000 {
+                                format!("{}µs", duration)
+                            } else if duration < 1_000_000 {
+                                format!("{:.2}ms", duration as f64 / 1_000.0)
+                            } else {
+                                format!("{:.2}s", duration as f64 / 1_000_000.0)
+                            };
+                            html! {
+                                <span class="duration-badge">
+                                    { label }
+                                </span>
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
                     <span class="request-time">
                         {
                             match chrono::DateTime::parse_from_rfc3339(&props.request.received_at) {

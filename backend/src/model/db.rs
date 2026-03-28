@@ -43,5 +43,12 @@ pub async fn init_db(conn: &Connection) -> Result<(), turso::Error> {
         .await
         .ok(); // Ignore error if column already exists
 
+    conn.execute(
+        "ALTER TABLE webhook_requests ADD COLUMN duration_us INTEGER",
+        (),
+    )
+    .await
+    .ok(); // Ignore error if column already exists
+
     Ok(())
 }
