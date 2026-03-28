@@ -363,6 +363,27 @@ a {
     opacity: 0.7;
 }
 
+.caller-info {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.caller-location {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.caller-ip {
+    font-family: "Courier New", monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 .expand-icon {
     color: var(--text-secondary);
     transition: transform 0.2s;
