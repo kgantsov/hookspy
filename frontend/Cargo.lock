@@ -434,6 +434,7 @@ dependencies = [
  "chrono-humanize",
  "futures-util",
  "gloo-net 0.6.0",
+ "js-sys",
  "serde",
  "serde_json",
  "wasm-bindgen-futures",

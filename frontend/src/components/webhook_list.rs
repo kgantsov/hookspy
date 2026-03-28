@@ -1,3 +1,4 @@
+use chrono::TimeZone;
 use chrono_humanize::HumanTime;
 use serde::Deserialize;
 use yew::prelude::*;
@@ -61,8 +62,15 @@ pub fn WebhookList(
                                 <div class="webhook-created-at">
                                     {
                                         match chrono::DateTime::parse_from_rfc3339(&webhook.created_at) {
-                                            Ok(dt) => format!("Created {}", HumanTime::from(dt)),
-                                            Err(_) => format!("Created {}", webhook.created_at),
+                                            Ok(dt) => {
+                                                let offset_minutes = js_sys::Date::new_0().get_timezone_offset() as i32;
+                                                let offset = chrono::FixedOffset::west_opt(offset_minutes * 60).unwrap();
+                                                let local_dt = offset.from_utc_datetime(&dt.naive_utc());
+                                                let tooltip = local_dt.format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+                                                let label = format!("Created {}", HumanTime::from(dt));
+                                                html! { <span title={tooltip}>{ label }</span> }
+                                            },
+                                            Err(_) => html! { <span>{ format!("Created {}", webhook.created_at) }</span> },
                                         }
                                     }
                                 </div>
