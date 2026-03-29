@@ -317,6 +317,7 @@ a {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
     cursor: pointer;
     user-select: none;
 }
@@ -325,6 +326,7 @@ a {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex: 1;
 }
 
 .method-badge {
@@ -363,6 +365,8 @@ a {
 .request-time {
     color: var(--text-secondary);
     font-size: 0.875rem;
+    margin-left: auto;
+    text-align: right;
 }
 
 .request-time-block {
