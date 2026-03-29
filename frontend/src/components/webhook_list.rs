@@ -12,6 +12,7 @@ pub struct Webhook {
     pub name: String,
     pub url: String,
     pub created_at: String,
+    pub has_unread: bool,
 }
 
 #[derive(Properties, PartialEq)]
@@ -49,6 +50,8 @@ pub fn WebhookList(
                 let is_active = selected_webhook_id.as_deref() == Some(webhook.id.as_str());
                 let item_class = if is_active {
                     "webhook-item active"
+                } else if webhook.has_unread {
+                    "webhook-item unread"
                 } else {
                     "webhook-item"
                 };
@@ -57,7 +60,16 @@ pub fn WebhookList(
                     <Link<Route> to={Route::Webhook { webhook_id: webhook.id.clone() }}>
                         <div key={webhook.id.clone()} class={item_class} onclick={on_select(webhook)}>
                             <div class="webhook-info">
-                                <div class="webhook-name">{webhook.name.clone()}</div>
+                                <div class="webhook-name">
+                                    {webhook.name.clone()}
+                                    {
+                                        if webhook.has_unread && !is_active {
+                                            html! { <span class="unread-dot" title="Unread requests"></span> }
+                                        } else {
+                                            html! {}
+                                        }
+                                    }
+                                </div>
                                 <div class="webhook-id">{webhook.id.clone()}</div>
                                 <div class="webhook-created-at">
                                     {

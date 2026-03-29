@@ -194,5 +194,12 @@ pub async fn get_webhook_requests(
             ApiError::InternalServerError("failed to fetch webhook requests".to_string())
         })?;
 
+    if let Err(err) = webhook_dao
+        .mark_as_seen(db.clone(), user.sub.as_str(), webhook_id.as_str())
+        .await
+    {
+        error!("Failed to mark webhook as seen: {} {}", webhook_id, err);
+    }
+
     Ok(Json(requests))
 }

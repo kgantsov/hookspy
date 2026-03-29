@@ -50,5 +50,9 @@ pub async fn init_db(conn: &Connection) -> Result<(), turso::Error> {
     .await
     .ok(); // Ignore error if column already exists
 
+    conn.execute("ALTER TABLE webhooks ADD COLUMN last_seen_at TEXT", ())
+        .await
+        .ok(); // Ignore error if column already exists
+
     Ok(())
 }

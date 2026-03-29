@@ -174,6 +174,15 @@ a {
     background: rgba(59, 130, 246, 0.1);
 }
 
+.webhook-item.unread {
+    border-color: var(--warning);
+}
+
+.webhook-item.unread:hover {
+    border-color: var(--warning);
+    background: rgba(245, 158, 11, 0.07);
+}
+
 .webhook-info {
     flex: 1;
     min-width: 0;
@@ -185,6 +194,19 @@ a {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.unread-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
 }
 
 .webhook-id {

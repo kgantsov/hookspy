@@ -34,6 +34,8 @@ impl WebhookDao {
             url,
             name: name.to_string(),
             created_at,
+            last_seen_at: None,
+            has_unread: false,
         })
     }
 
@@ -45,7 +47,13 @@ impl WebhookDao {
     ) -> anyhow::Result<Webhook> {
         let mut rows = db
             .query(
-                "SELECT id, name, created_at FROM webhooks WHERE user_id = ? AND id = ?",
+                "SELECT w.id, w.name, w.created_at, w.last_seen_at,
+                        EXISTS(
+                            SELECT 1 FROM webhook_requests wr
+                            WHERE wr.webhook_id = w.id
+                            AND (w.last_seen_at IS NULL OR wr.received_at > w.last_seen_at)
+                        ) as has_unread
+                 FROM webhooks w WHERE w.user_id = ? AND w.id = ?",
                 turso::params![user_id, id],
             )
             .await?;
@@ -62,6 +70,8 @@ impl WebhookDao {
         let id: String = row.get(0)?;
         let name: String = row.get(1)?;
         let created_at: String = row.get(2)?;
+        let last_seen_at: Option<String> = row.get(3)?;
+        let has_unread: bool = row.get::<i64>(4)? != 0;
         let url = self.construct_url(&self.domain, &id);
 
         let webhook = Webhook {
@@ -69,6 +79,8 @@ impl WebhookDao {
             url,
             name,
             created_at,
+            last_seen_at,
+            has_unread,
         };
 
         Ok(webhook)
@@ -81,7 +93,13 @@ impl WebhookDao {
     ) -> anyhow::Result<Vec<Webhook>> {
         let mut rows = db
             .query(
-                "SELECT id, name, created_at FROM webhooks WHERE user_id = ? ORDER BY created_at DESC LIMIT 100",
+                "SELECT w.id, w.name, w.created_at, w.last_seen_at,
+                        EXISTS(
+                            SELECT 1 FROM webhook_requests wr
+                            WHERE wr.webhook_id = w.id
+                            AND (w.last_seen_at IS NULL OR wr.received_at > w.last_seen_at)
+                        ) as has_unread
+                 FROM webhooks w WHERE w.user_id = ? ORDER BY w.created_at DESC LIMIT 100",
                 turso::params![user_id],
             )
             .await?;
@@ -92,6 +110,8 @@ impl WebhookDao {
             let id: String = row.get(0)?;
             let name: String = row.get(1)?;
             let created_at: String = row.get(2)?;
+            let last_seen_at: Option<String> = row.get(3)?;
+            let has_unread: bool = row.get::<i64>(4)? != 0;
             let url = self.construct_url(&self.domain, &id);
 
             let webhook = Webhook {
@@ -99,12 +119,29 @@ impl WebhookDao {
                 url,
                 name,
                 created_at,
+                last_seen_at,
+                has_unread,
             };
 
             webhooks.push(webhook);
         }
 
         Ok(webhooks)
+    }
+
+    pub async fn mark_as_seen(
+        &self,
+        db: turso::Connection,
+        user_id: &str,
+        webhook_id: &str,
+    ) -> anyhow::Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        db.execute(
+            "UPDATE webhooks SET last_seen_at = ? WHERE id = ? AND user_id = ?",
+            turso::params![now, webhook_id, user_id],
+        )
+        .await?;
+        Ok(())
     }
 
     pub async fn delete_webhook(

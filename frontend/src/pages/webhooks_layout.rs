@@ -20,9 +20,10 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
     };
 
     let webhooks = use_state(|| vec![]);
-    {
+
+    let fetch_webhooks = {
         let webhooks = webhooks.clone();
-        use_effect_with((), move |_| {
+        Callback::from(move |_: ()| {
             let webhooks = webhooks.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let resp = Request::get("/api/webhooks").send().await;
@@ -48,6 +49,23 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     }
                 }
             });
+        })
+    };
+
+    // Initial fetch on mount
+    {
+        let fetch_webhooks = fetch_webhooks.clone();
+        use_effect_with((), move |_| {
+            fetch_webhooks.emit(());
+            || ()
+        });
+    }
+
+    // Re-fetch when the active webhook changes so has_unread reflects the latest seen state
+    {
+        let fetch_webhooks = fetch_webhooks.clone();
+        use_effect_with(selected_webhook_id.clone(), move |_| {
+            fetch_webhooks.emit(());
             || ()
         });
     }
@@ -65,7 +83,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
 
     let on_webhook_delete = {
         let selected_webhook = selected_webhook.clone();
-        let webhooks = webhooks.clone();
+        let fetch_webhooks_for_delete = fetch_webhooks.clone();
         let navigator = navigator.clone();
         Callback::from(move |webhook: Webhook| {
             if let Some(window) = window() {
@@ -73,8 +91,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     window.confirm_with_message("Are you sure you want to delete this webhook?");
                 if let Ok(true) = confirmation {
                     let selected_webhook = selected_webhook.clone();
-
-                    let webhooks = webhooks.clone();
+                    let fetch_webhooks_for_delete = fetch_webhooks_for_delete.clone();
                     let navigator = navigator.clone();
                     wasm_bindgen_futures::spawn_local(async move {
                         let response = Request::delete(&format!("/api/webhooks/{}", webhook.id))
@@ -89,15 +106,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
 
                                     selected_webhook.set(None);
 
-                                    let fetched_webhooks: Vec<Webhook> =
-                                        Request::get("/api/webhooks")
-                                            .send()
-                                            .await
-                                            .unwrap()
-                                            .json()
-                                            .await
-                                            .unwrap();
-                                    webhooks.set(fetched_webhooks);
+                                    fetch_webhooks_for_delete.emit(());
                                     navigator.push(&Route::Webhooks);
                                 }
                                 Err(_) => {
@@ -161,31 +170,10 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                 is_open={*create_webhook_modal_is_open}
                 on_close={
                     let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
-                    move |_| {create_webhook_modal_is_open.set(false);
-                        let webhooks = webhooks.clone();
-                        wasm_bindgen_futures::spawn_local(async move {
-                            let resp = Request::get("/api/webhooks")
-                                .send()
-                                .await;
-
-                            match resp {
-                                Ok(response) => {
-                                    let fetched_webhooks: Result<Vec<Webhook>, _> = response.json().await;
-
-                                    match fetched_webhooks {
-                                        Ok(fetched_webhooks) => {
-                                            webhooks.set(fetched_webhooks);
-                                        },
-                                        Err(error) => {
-                                            web_sys::console::log_1(&format!("Error fetching webhooks: {}", error).into())
-                                        }
-                                    }
-                                },
-                                Err(error) => {
-                                    web_sys::console::log_1(&format!("Error fetching webhooks: {}", error).into())
-                                }
-                            }
-                        });
+                    let fetch_webhooks_on_close = fetch_webhooks.clone();
+                    move |_| {
+                        create_webhook_modal_is_open.set(false);
+                        fetch_webhooks_on_close.emit(());
                     }
                 }
             />
