@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use yew::prelude::*;
 
+use crate::components::tooltip::Tooltip;
+
 #[derive(Clone, PartialEq, Deserialize)]
 pub struct WebhookRequest {
     pub id: String,
@@ -35,6 +37,15 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
             props.request.body.clone()
         };
 
+    let body_size = props.request.body.len();
+    let size_label = if body_size < 1_024 {
+        format!("{} B", body_size)
+    } else if body_size < 1_048_576 {
+        format!("{:.2} KB", body_size as f64 / 1_024.0)
+    } else {
+        format!("{:.2} MB", body_size as f64 / 1_048_576.0)
+    };
+
     let expanded_class = if *expanded { "expanded" } else { "" };
 
     let onclick = {
@@ -61,14 +72,21 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                                 format!("{:.2}s", duration as f64 / 1_000_000.0)
                             };
                             html! {
-                                <span class="duration-badge">
-                                    { label }
-                                </span>
+                                <Tooltip text="Time taken to process this request">
+                                    <span class="duration-badge">
+                                        { label }
+                                    </span>
+                                </Tooltip>
                             }
                         } else {
                             html! {}
                         }
                     }
+                    <Tooltip text="Payload size of the request body">
+                        <span class="size-badge">
+                            { size_label.clone() }
+                        </span>
+                    </Tooltip>
                     <span class="request-time">
                         {
                             match chrono::DateTime::parse_from_rfc3339(&props.request.received_at) {

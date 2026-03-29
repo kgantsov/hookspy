@@ -350,6 +350,16 @@ a {
     color: var(--warning);
 }
 
+.size-badge {
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: "Courier New", monospace;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent);
+}
+
 .request-time {
     color: var(--text-secondary);
     font-size: 0.875rem;

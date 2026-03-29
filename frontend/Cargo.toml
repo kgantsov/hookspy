@@ -16,6 +16,10 @@ features = [
     "Window",
     "Navigator",
     "Clipboard",
+    "Document",
+    "Element",
+    "DomRect",
+    "HtmlElement",
 ]
 
 [dependencies]
