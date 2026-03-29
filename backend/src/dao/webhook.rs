@@ -129,6 +129,27 @@ impl WebhookDao {
         Ok(webhooks)
     }
 
+    pub async fn get_webhook_user_id(
+        &self,
+        db: turso::Connection,
+        webhook_id: &str,
+    ) -> anyhow::Result<String> {
+        let mut rows = db
+            .query(
+                "SELECT user_id FROM webhooks WHERE id = ?",
+                turso::params![webhook_id],
+            )
+            .await?;
+
+        let row = rows
+            .next()
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("webhook not found"))?;
+
+        let user_id: String = row.get(0)?;
+        Ok(user_id)
+    }
+
     pub async fn mark_as_seen(
         &self,
         db: turso::Connection,

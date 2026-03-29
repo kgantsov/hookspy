@@ -1,7 +1,11 @@
 use crate::components::create_webhook_modal::CreateWebhookModal;
 use crate::routes::Route;
 
+use futures_util::StreamExt;
+use futures_util::stream::AbortHandle;
+use futures_util::stream::Abortable;
 use gloo_net::http::Request;
+use gloo_net::websocket::{Message, futures::WebSocket};
 use web_sys::window;
 use yew::html::ChildrenProps;
 use yew::prelude::*;
@@ -9,6 +13,15 @@ use yew_router::prelude::*;
 
 use crate::components::webhook_list::Webhook;
 use crate::components::webhook_list::WebhookList;
+
+fn websocket_url(path: &str) -> String {
+    let window = window().expect("no window");
+    let location = window.location();
+    let protocol = location.protocol().unwrap();
+    let host = location.host().unwrap();
+    let ws_protocol = if protocol == "https:" { "wss" } else { "ws" };
+    format!("{ws_protocol}://{host}{path}")
+}
 
 #[component]
 pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
@@ -20,6 +33,31 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
     };
 
     let webhooks = use_state(|| vec![]);
+
+    // Mirrors kept in sync so the long-lived WS async loop can always read current values
+    // without being re-created on every state change.
+    let webhooks_ref = use_mut_ref(|| vec![]);
+    let selected_id_ref = use_mut_ref(|| None::<String>);
+
+    // Keep the selected-id mirror in sync with the derived route value.
+    {
+        let selected_id_ref = selected_id_ref.clone();
+        let selected_webhook_id = selected_webhook_id.clone();
+        use_effect_with(selected_webhook_id.clone(), move |id| {
+            *selected_id_ref.borrow_mut() = id.clone();
+            || ()
+        });
+    }
+
+    // Keep the webhooks mirror in sync whenever the state changes.
+    {
+        let webhooks_ref = webhooks_ref.clone();
+        let webhooks = webhooks.clone();
+        use_effect_with((*webhooks).clone(), move |current| {
+            *webhooks_ref.borrow_mut() = current.clone();
+            || ()
+        });
+    }
 
     let fetch_webhooks = {
         let webhooks = webhooks.clone();
@@ -45,14 +83,14 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                         }
                     }
                     Err(err) => {
-                        web_sys::console::log_1(&format!("Error fetching webhook: {}", err).into())
+                        web_sys::console::log_1(&format!("Error fetching webhooks: {}", err).into())
                     }
                 }
             });
         })
     };
 
-    // Initial fetch on mount
+    // Initial fetch on mount.
     {
         let fetch_webhooks = fetch_webhooks.clone();
         use_effect_with((), move |_| {
@@ -61,12 +99,100 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
         });
     }
 
-    // Re-fetch when the active webhook changes so has_unread reflects the latest seen state
+    // When the user navigates to a webhook, optimistically clear has_unread in local state
+    // and re-fetch the list so the seen timestamp is reflected from the server.
     {
+        let webhooks = webhooks.clone();
         let fetch_webhooks = fetch_webhooks.clone();
-        use_effect_with(selected_webhook_id.clone(), move |_| {
+        use_effect_with(selected_webhook_id.clone(), move |current_id| {
+            if let Some(id) = current_id.clone() {
+                let updated: Vec<Webhook> = (*webhooks)
+                    .iter()
+                    .map(|w| {
+                        if w.id == id {
+                            Webhook {
+                                has_unread: false,
+                                ..w.clone()
+                            }
+                        } else {
+                            w.clone()
+                        }
+                    })
+                    .collect();
+                webhooks.set(updated);
+            }
             fetch_webhooks.emit(());
             || ()
+        });
+    }
+
+    // Single user-level WS subscription opened once on mount.
+    // Reads current list and selected id through refs so the loop is never re-created.
+    {
+        let webhooks = webhooks.clone();
+        let webhooks_ref = webhooks_ref.clone();
+        let selected_id_ref = selected_id_ref.clone();
+        use_effect_with((), move |_| {
+            let (abort_handle, abort_registration) = AbortHandle::new_pair();
+
+            let ws_url = websocket_url("/ws/user/notifications");
+
+            let future = async move {
+                match WebSocket::open(&ws_url) {
+                    Ok(ws) => {
+                        let (_write, mut read) = ws.split();
+                        while let Some(msg) = read.next().await {
+                            match msg {
+                                Ok(Message::Text(webhook_id)) => {
+                                    // Don't mark as unread if the user is already viewing it.
+                                    let is_selected = selected_id_ref
+                                        .borrow()
+                                        .as_deref()
+                                        .map(|id| id == webhook_id)
+                                        .unwrap_or(false);
+
+                                    if !is_selected {
+                                        // Read the current list from the ref (always up-to-date).
+                                        let updated: Vec<Webhook> = webhooks_ref
+                                            .borrow()
+                                            .iter()
+                                            .map(|w| {
+                                                if w.id == webhook_id {
+                                                    Webhook {
+                                                        has_unread: true,
+                                                        ..w.clone()
+                                                    }
+                                                } else {
+                                                    w.clone()
+                                                }
+                                            })
+                                            .collect();
+                                        webhooks.set(updated);
+                                    }
+                                }
+                                Err(err) => {
+                                    web_sys::console::error_1(&err.to_string().into());
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to open user notifications WS: {:?}", err).into(),
+                        );
+                    }
+                }
+            };
+
+            let abortable = Abortable::new(future, abort_registration);
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = abortable.await;
+            });
+
+            move || {
+                abort_handle.abort();
+            }
         });
     }
 
@@ -105,7 +231,6 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                                     }
 
                                     selected_webhook.set(None);
-
                                     fetch_webhooks_for_delete.emit(());
                                     navigator.push(&Route::Webhooks);
                                 }
@@ -131,14 +256,13 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                                 { "HookSpy" }
                             </Link<Route>>
                         </span>
-
                     </div>
                     <button
-                    class="btn btn-primary"
-                    onclick={
-                        let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
-                        move |_| create_webhook_modal_is_open.set(true)
-                    }>
+                        class="btn btn-primary"
+                        onclick={
+                            let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
+                            move |_| create_webhook_modal_is_open.set(true)
+                        }>
                         {"+ New Webhook"}
                     </button>
                 </header>
@@ -146,9 +270,9 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     <aside class="sidebar">
                         <div class="sidebar-header">
                             <h2 class="sidebar-title">{ "Webhooks" }</h2>
-                            <span class="sidebar-title" style="font-weight: 400"
-                                >{webhooks.len()}</span
-                            >
+                            <span class="sidebar-title" style="font-weight: 400">
+                                {webhooks.len()}
+                            </span>
                         </div>
 
                         <WebhookList
@@ -159,9 +283,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                         />
                     </aside>
                     <main class="main-content">
-
-                        { props.children.clone() } // ← routed content
-
+                        { props.children.clone() }
                     </main>
                 </div>
             </div>

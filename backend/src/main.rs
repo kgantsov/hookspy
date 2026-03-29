@@ -18,7 +18,10 @@ use hookspy::handlers::webhook::{
 };
 use hookspy::model::db::init_db;
 use hookspy::notification::notification::Notification;
-use hookspy::{app::AppState, handlers::ws::webhook_notifications_ws};
+use hookspy::{
+    app::AppState,
+    handlers::ws::{user_notifications_ws, webhook_notifications_ws},
+};
 use hookspy::{
     config::init_config,
     handlers::auth::{callback, login},
@@ -118,10 +121,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/auth/callback", get(callback))
         .route("/auth/login", get(login));
 
-    let ws_routes = Router::new().route(
-        "/webhooks/:webhook_id/notifications",
-        get(webhook_notifications_ws),
-    );
+    let ws_routes = Router::new()
+        .route(
+            "/webhooks/:webhook_id/notifications",
+            get(webhook_notifications_ws),
+        )
+        .route("/user/notifications", get(user_notifications_ws));
 
     let app = Router::new()
         .nest("/api", api_routes)

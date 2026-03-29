@@ -155,6 +155,11 @@ pub async fn receive_webhook(
             ApiError::InternalServerError("failed to save a webhook request".to_string())
         })?;
 
+    let user_id = webhook_dao
+        .get_webhook_user_id(db.clone(), webhook_id.as_str())
+        .await
+        .ok();
+
     let mut notification = state.notification.lock().await;
 
     let result_json = serde_json::to_string(&webhook_request).map_err(|err| {
@@ -163,6 +168,10 @@ pub async fn receive_webhook(
     })?;
 
     notification.notify(webhook_id.clone(), result_json).await;
+
+    if let Some(uid) = user_id {
+        notification.notify_user(&uid, &webhook_id).await;
+    }
 
     Ok(Json(webhook_request))
 }
