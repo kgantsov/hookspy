@@ -35,7 +35,7 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
     html! {
         <>
             <div class="content-header" key={webhook.id.clone()}>
-                <div>
+                <div style="width: 100%">
                     <h1 class="content-title">{ &webhook.name.clone() }</h1>
                     <div
                         class="endpoint-display"

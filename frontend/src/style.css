@@ -559,6 +559,8 @@ a {
     font-size: 0.875rem;
     color: var(--accent);
     word-break: break-all;
+    flex: 1;
+    min-width: 0;
 }
 
 .copy-btn {
