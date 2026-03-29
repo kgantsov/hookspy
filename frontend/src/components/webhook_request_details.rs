@@ -4,6 +4,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use yew::prelude::*;
 
+use crate::hooks::use_clock_tick;
+
 use crate::components::tooltip::Tooltip;
 
 #[derive(Clone, PartialEq, Deserialize)]
@@ -26,6 +28,9 @@ pub struct WebhookRequestProps {
 #[component]
 pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
     let expanded = use_state(|| false);
+    // Tick every 30 s so relative timestamps ("7 minutes ago") stay
+    // fresh without making any HTTP requests.
+    let _tick = use_clock_tick(30_000);
 
     let headers: Result<HashMap<String, String>, _> = serde_json::from_str(&props.request.headers);
 
@@ -65,11 +70,11 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                     {
                         if let Some(duration) = props.request.duration_us {
                             let label = if duration < 1_000 {
-                                format!("{}µs", duration)
+                                format!("{} µs", duration)
                             } else if duration < 1_000_000 {
-                                format!("{:.2}ms", duration as f64 / 1_000.0)
+                                format!("{:.2} ms", duration as f64 / 1_000.0)
                             } else {
-                                format!("{:.2}s", duration as f64 / 1_000_000.0)
+                                format!("{:.2} s", duration as f64 / 1_000_000.0)
                             };
                             html! {
                                 <Tooltip text="Time taken to process this request">

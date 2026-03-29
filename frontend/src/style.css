@@ -372,6 +372,7 @@ a {
     font-family: "Courier New", monospace;
     background: rgba(245, 158, 11, 0.15);
     color: var(--warning);
+    white-space: nowrap;
 }
 
 .size-badge {
@@ -382,6 +383,7 @@ a {
     font-family: "Courier New", monospace;
     background: rgba(59, 130, 246, 0.15);
     color: var(--accent);
+    white-space: nowrap;
 }
 
 .request-time {

@@ -4,6 +4,7 @@ use serde::Deserialize;
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
+use crate::hooks::use_clock_tick;
 use crate::routes::Route;
 
 #[derive(Clone, PartialEq, Deserialize)]
@@ -32,6 +33,9 @@ pub fn WebhookList(
         selected_webhook_id,
     }: &WebhookListProps,
 ) -> Html {
+    // Tick every 30 s so relative timestamps ("created 5 minutes ago") stay
+    // fresh without making any HTTP requests.
+    let _tick = use_clock_tick(30_000);
     let on_select = |webhook: &Webhook| {
         let on_click = on_click.clone();
         let webhook = webhook.clone();
