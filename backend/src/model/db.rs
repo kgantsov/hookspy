@@ -1,6 +1,8 @@
 use turso::Connection;
 
 pub async fn init_db(conn: &Connection) -> Result<(), turso::Error> {
+    conn.execute("PRAGMA journal_mode=WAL", ()).await?;
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
