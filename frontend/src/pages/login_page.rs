@@ -15,7 +15,13 @@ pub fn LoginPage() -> Html {
             <div class="auth-container">
                 <div class="auth-card">
                     <div class="auth-logo">
-                        <div class="auth-logo-icon">{ "🪝" }</div>
+                        <div class="auth-logo-icon">
+                            <svg width="26" height="26" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="7" cy="5" r="2.5" stroke="white" stroke-width="1.75" fill="none"/>
+                                <circle cx="7" cy="5" r="1" fill="white"/>
+                                <path d="M7 7.5 L7 12 Q7 17 12 17 Q17 17 17 12 Q17 9.5 14.5 9.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            </svg>
+                        </div>
                         <span>{ "HookSpy" }</span>
                     </div>
 

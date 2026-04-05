@@ -20,6 +20,7 @@ features = [
     "Element",
     "DomRect",
     "HtmlElement",
+    "Storage",
 ]
 
 [dependencies]

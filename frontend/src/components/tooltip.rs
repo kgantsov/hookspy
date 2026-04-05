@@ -49,11 +49,13 @@ pub fn Tooltip(props: &TooltipProps) -> Html {
     let tooltip_portal = if *visible {
         if let Some(host) = portal_host {
             let style = format!(
-                "position:absolute; left:{:.2}px; top:{:.2}px; transform:translate(-50%, calc(-100% - 6px)); \
-                 background:#2a2a2a; color:#e8e8e8; font-size:0.72rem; white-space:nowrap; \
-                 padding:0.35rem 0.6rem; border-radius:5px; border:1px solid #333; \
+                "position:absolute; left:{:.2}px; top:{:.2}px; transform:translate(-50%, calc(-100% - 8px)); \
+                 background:var(--tooltip-bg); color:var(--tooltip-fg); font-size:0.6875rem; white-space:nowrap; \
+                 padding:0.3rem 0.65rem; border-radius:6px; border:1px solid var(--tooltip-border); \
+                 box-shadow:0 4px 16px rgba(0,0,0,0.35); \
                  pointer-events:none; z-index:9999; \
-                 font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto',sans-serif; font-weight:400;",
+                 font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; \
+                 font-weight:500; letter-spacing:-0.01em;",
                 *x, *y
             );
             yew::create_portal(html! { <div {style}>{ props.text.clone() }</div> }, host)

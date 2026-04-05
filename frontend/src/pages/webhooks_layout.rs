@@ -11,6 +11,7 @@ use yew::html::ChildrenProps;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
+use crate::components::theme_switcher::ThemeSwitcher;
 use crate::components::webhook_list::Webhook;
 use crate::components::webhook_list::WebhookList;
 
@@ -250,27 +251,36 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
             <div class="container">
                 <header>
                     <div class="logo">
-                        <div class="logo-icon">{ "🪝" }</div>
+                        <div class="logo-icon">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="7" cy="5" r="2.5" stroke="white" stroke-width="1.75"/>
+                                <circle cx="7" cy="5" r="1" fill="white"/>
+                                <path d="M7 7.5 L7 12 Q7 17 12 17 Q17 17 17 12 Q17 9.5 14.5 9.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
                         <span>
                             <Link<Route> to={Route::Webhooks}>
                                 { "HookSpy" }
                             </Link<Route>>
                         </span>
                     </div>
-                    <button
-                        class="btn btn-primary"
-                        onclick={
-                            let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
-                            move |_| create_webhook_modal_is_open.set(true)
-                        }>
-                        {"+ New Webhook"}
-                    </button>
+                    <div class="header-actions">
+                        <ThemeSwitcher />
+                        <button
+                            class="btn btn-primary"
+                            onclick={
+                                let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
+                                move |_| create_webhook_modal_is_open.set(true)
+                            }>
+                            {"+ New Webhook"}
+                        </button>
+                    </div>
                 </header>
                 <div class="layout">
                     <aside class="sidebar">
                         <div class="sidebar-header">
                             <h2 class="sidebar-title">{ "Webhooks" }</h2>
-                            <span class="sidebar-title" style="font-weight: 400">
+                            <span class="sidebar-count">
                                 {webhooks.len()}
                             </span>
                         </div>
