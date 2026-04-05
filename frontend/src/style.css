@@ -32,23 +32,23 @@
 }
 
 /* =============================================
-   Design Tokens — Default theme: Indigo
+   Design Tokens — Default theme: Gray
    ============================================= */
 :root {
     /* ── Surfaces, text & borders (all theme-controlled) ── */
-    --bg-base: #07090f;
-    --bg-primary: #0c1018;
-    --bg-card: #0f1623;
-    --bg-raised: #18213a;
+    --bg-base: #010409;
+    --bg-primary: #0d1117;
+    --bg-card: #161b22;
+    --bg-raised: #21262d;
 
-    --border: rgba(255, 255, 255, 0.09);
+    --border: rgba(48, 54, 61, 0.85);
 
-    --text-primary: #dde4f0;
-    --text-secondary: #8895aa;
-    --text-muted: #4a5e78;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --text-muted: #586069;
 
-    --scrollbar-thumb: #1e2d47;
-    --scrollbar-thumb-hover: #2e4060;
+    --scrollbar-thumb: #30363d;
+    --scrollbar-thumb-hover: #484f58;
 
     /* Semantic (always fixed) */
     --success: #22c55e;
@@ -78,26 +78,26 @@
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
     /* ── Accent palette (overridden per theme) ── */
-    --accent: #6366f1;
-    --accent-2: #8b5cf6;
-    --accent-hover: #4f46e5;
-    --accent-light: #a5b4fc; /* lighter tint — code text, badges */
-    --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --accent: #2f81f7;
+    --accent-2: #58a6ff;
+    --accent-hover: #1f6feb;
+    --accent-light: #cae8ff; /* lighter tint — code text, badges */
+    --gradient: linear-gradient(135deg, #2f81f7 0%, #58a6ff 100%);
 
     /* Pre-baked alpha layers (also overridden per theme) */
-    --accent-tint: rgba(99, 102, 241, 0.08); /* focus rings, active bg */
-    --accent-subtle: rgba(99, 102, 241, 0.12); /* card borders, modal bg */
-    --accent-glow: rgba(99, 102, 241, 0.2); /* general glow */
-    --accent-border: rgba(99, 102, 241, 0.25); /* visible borders       */
-    --accent-ring: rgba(99, 102, 241, 0.45); /* strong rings          */
-    --accent-shadow: rgba(99, 102, 241, 0.28); /* shadow / logo glow    */
-    --shadow-accent: 0 0 22px rgba(99, 102, 241, 0.18);
+    --accent-tint: rgba(47, 129, 247, 0.08); /* focus rings, active bg */
+    --accent-subtle: rgba(47, 129, 247, 0.12); /* card borders, modal bg */
+    --accent-glow: rgba(47, 129, 247, 0.2); /* general glow */
+    --accent-border: rgba(47, 129, 247, 0.25); /* visible borders       */
+    --accent-ring: rgba(47, 129, 247, 0.45); /* strong rings          */
+    --accent-shadow: rgba(47, 129, 247, 0.28); /* shadow / logo glow    */
+    --shadow-accent: 0 0 22px rgba(47, 129, 247, 0.18);
 
     /* Ambient body & auth-page glows */
-    --ambient-1: rgba(99, 102, 241, 0.09);
-    --ambient-2: rgba(139, 92, 246, 0.07);
-    --auth-glow-1: rgba(99, 102, 241, 0.14);
-    --auth-glow-2: rgba(139, 92, 246, 0.1);
+    --ambient-1: rgba(47, 129, 247, 0.09);
+    --ambient-2: rgba(88, 166, 255, 0.07);
+    --auth-glow-1: rgba(47, 129, 247, 0.14);
+    --auth-glow-2: rgba(88, 166, 255, 0.1);
 
     /* Derived border aliases */
     --border-hover: var(--accent-border);
@@ -109,9 +109,9 @@
     --google-btn-bg: #ffffff;
     --google-btn-fg: #111827;
     --google-btn-border: transparent;
-    --tooltip-bg: #18213a;
-    --tooltip-fg: #dde4f0;
-    --tooltip-border: rgba(255, 255, 255, 0.07);
+    --tooltip-bg: #161b22;
+    --tooltip-fg: #c9d1d9;
+    --tooltip-border: rgba(255, 255, 255, 0.08);
 
     /* ── Shadow tint (lightens on light themes) ── */
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -309,40 +309,40 @@
 }
 
 /* ── Option F: Gray Dark ── */
-:root[data-theme="gray"] {
-    --tooltip-bg: #161b22;
-    --tooltip-fg: #c9d1d9;
-    --tooltip-border: rgba(255, 255, 255, 0.08);
+:root[data-theme="indigo"] {
+    --tooltip-bg: #18213a;
+    --tooltip-fg: #dde4f0;
+    --tooltip-border: rgba(255, 255, 255, 0.07);
 
-    --bg-base: #010409;
-    --bg-primary: #0d1117;
-    --bg-card: #161b22;
-    --bg-raised: #21262d;
-    --border: rgba(48, 54, 61, 0.85);
-    --text-primary: #c9d1d9;
-    --text-secondary: #8b949e;
-    --text-muted: #586069;
-    --scrollbar-thumb: #30363d;
-    --scrollbar-thumb-hover: #484f58;
+    --bg-base: #07090f;
+    --bg-primary: #0c1018;
+    --bg-card: #0f1623;
+    --bg-raised: #18213a;
+    --border: rgba(255, 255, 255, 0.09);
+    --text-primary: #dde4f0;
+    --text-secondary: #8895aa;
+    --text-muted: #4a5e78;
+    --scrollbar-thumb: #1e2d47;
+    --scrollbar-thumb-hover: #2e4060;
 
-    --accent: #2f81f7;
-    --accent-2: #58a6ff;
-    --accent-hover: #1f6feb;
-    --accent-light: #cae8ff;
-    --gradient: linear-gradient(135deg, #2f81f7 0%, #58a6ff 100%);
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-hover: #4f46e5;
+    --accent-light: #a5b4fc;
+    --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 
-    --accent-tint: rgba(47, 129, 247, 0.08);
-    --accent-subtle: rgba(47, 129, 247, 0.12);
-    --accent-glow: rgba(47, 129, 247, 0.2);
-    --accent-border: rgba(47, 129, 247, 0.25);
-    --accent-ring: rgba(47, 129, 247, 0.45);
-    --accent-shadow: rgba(47, 129, 247, 0.28);
-    --shadow-accent: 0 0 22px rgba(47, 129, 247, 0.18);
+    --accent-tint: rgba(99, 102, 241, 0.08);
+    --accent-subtle: rgba(99, 102, 241, 0.12);
+    --accent-glow: rgba(99, 102, 241, 0.2);
+    --accent-border: rgba(99, 102, 241, 0.25);
+    --accent-ring: rgba(99, 102, 241, 0.45);
+    --accent-shadow: rgba(99, 102, 241, 0.28);
+    --shadow-accent: 0 0 22px rgba(99, 102, 241, 0.18);
 
-    --ambient-1: rgba(47, 129, 247, 0.09);
-    --ambient-2: rgba(88, 166, 255, 0.07);
-    --auth-glow-1: rgba(47, 129, 247, 0.14);
-    --auth-glow-2: rgba(88, 166, 255, 0.1);
+    --ambient-1: rgba(99, 102, 241, 0.09);
+    --ambient-2: rgba(139, 92, 246, 0.07);
+    --auth-glow-1: rgba(99, 102, 241, 0.14);
+    --auth-glow-2: rgba(139, 92, 246, 0.1);
 }
 
 /* ── Option G: Gray Light ── */

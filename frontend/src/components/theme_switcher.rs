@@ -9,9 +9,19 @@ struct ThemeOption {
 
 const THEMES: &[ThemeOption] = &[
     ThemeOption {
+        id: "gray",
+        color: "#2f81f7",
+        label: "Gray Dark (default)",
+    },
+    ThemeOption {
+        id: "gray-light",
+        color: "#f6f8fa",
+        label: "Gray Light",
+    },
+    ThemeOption {
         id: "indigo",
         color: "#6366f1",
-        label: "Indigo (default)",
+        label: "Indigo",
     },
     ThemeOption {
         id: "sky",
@@ -38,16 +48,6 @@ const THEMES: &[ThemeOption] = &[
         color: "#f59e0b",
         label: "Amber / Honey",
     },
-    ThemeOption {
-        id: "gray",
-        color: "#2f81f7",
-        label: "Gray Dark",
-    },
-    ThemeOption {
-        id: "gray-light",
-        color: "#f6f8fa",
-        label: "Gray Light",
-    },
 ];
 
 fn apply_theme(theme_id: &str) {
@@ -55,8 +55,8 @@ fn apply_theme(theme_id: &str) {
         // Set data-theme on <html>
         if let Some(doc) = win.document() {
             if let Some(root) = doc.document_element() {
-                // "indigo" is the default — remove the attribute so :root rules apply
-                if theme_id == "indigo" {
+                // "gray" is the default — remove the attribute so :root rules apply
+                if theme_id == "gray" {
                     let _ = root.remove_attribute("data-theme");
                 } else {
                     let _ = root.set_attribute("data-theme", theme_id);
@@ -74,7 +74,7 @@ fn read_saved_theme() -> String {
     window()
         .and_then(|w| w.local_storage().ok().flatten())
         .and_then(|s| s.get_item("hookspy-theme").ok().flatten())
-        .unwrap_or_else(|| "indigo".to_string())
+        .unwrap_or_else(|| "gray".to_string())
 }
 
 #[component]
