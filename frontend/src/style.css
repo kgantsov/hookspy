@@ -472,6 +472,8 @@ header::after {
 @media (max-width: 768px) {
     header {
         margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.5rem 0;
     }
 }
 
@@ -1586,6 +1588,8 @@ header::after {
 @media (max-width: 768px) {
     .header-actions {
         gap: 0.5rem;
+        width: 100%;
+        justify-content: space-between;
     }
     .theme-switcher {
         padding: 4px 7px;
@@ -1633,6 +1637,24 @@ header::after {
     }
     .request-header {
         padding: 0.625rem 0.875rem;
+        align-items: flex-start;
+    }
+    .request-time {
+        margin-left: 0;
+        width: 100%;
+        text-align: left;
+        margin-top: 0.3rem;
+    }
+    .request-time-block {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+    .request-time-precise {
+        font-size: 0.75rem;
+    }
+    .request-time-relative {
+        font-size: 0.7rem;
     }
     .request-section {
         padding: 0.875rem 1rem;
