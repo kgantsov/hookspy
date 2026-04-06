@@ -1,4 +1,5 @@
 use anyhow::Ok;
+use chrono::Offset;
 use uuid::Uuid;
 
 use crate::{model::webhook::Webhook, schema::webhook::WebhookRequest};
@@ -235,11 +236,13 @@ impl WebhookDao {
         &self,
         db: turso::Connection,
         webhook_id: &str,
+        offset: u64,
+        limit: u64,
     ) -> anyhow::Result<Vec<WebhookRequest>> {
         let mut rows = db
             .query(
-                "SELECT id, webhook_id, method, headers, body, received_at, caller_ip, duration_us FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC",
-                turso::params![webhook_id],
+                "SELECT id, webhook_id, method, headers, body, received_at, caller_ip, duration_us FROM webhook_requests WHERE webhook_id = ? ORDER BY received_at DESC LIMIT ?, ?",
+                turso::params![webhook_id, offset, limit],
             )
             .await?;
 

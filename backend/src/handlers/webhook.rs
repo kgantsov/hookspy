@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ConnectInfo, Path, State},
+    extract::{ConnectInfo, Path, Query, State},
     http::HeaderMap,
     response::Json,
 };
@@ -251,12 +251,20 @@ pub async fn receive_webhook(
     Ok(Json(webhook_request))
 }
 
+#[derive(serde::Deserialize)]
+pub struct PaginationParams {
+    pub size: Option<u64>,
+    pub page: Option<u64>,
+}
+
 /// List all requests received by a webhook
 #[utoipa::path(
     get,
     path = "/api/webhooks/{webhook_id}/requests",
     params(
         ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+        ("size" = Option<u64>, Query, description = "Number of requests per page (default 100, max 1000)"),
+        ("page" = Option<u64>, Query, description = "Page number for pagination (default 1)"),
     ),
     responses(
         (status = 200, description = "List of recorded webhook requests", body = Vec<WebhookRequest>),
@@ -270,7 +278,12 @@ pub async fn get_webhook_requests(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
     Path(webhook_id): Path<String>,
+    Query(params): Query<PaginationParams>,
 ) -> Result<Json<Vec<WebhookRequest>>, ApiError> {
+    let page_size = params.size.unwrap_or(100).min(1000);
+    let page_number = params.page.unwrap_or(1).max(1);
+    let offset = (page_number - 1) * page_size;
+
     let db = state.db.lock().await;
 
     let webhook_dao = WebhookDao {
@@ -286,7 +299,7 @@ pub async fn get_webhook_requests(
         })?;
 
     let requests = webhook_dao
-        .get_webhook_requests(db.clone(), webhook_id.as_str())
+        .get_webhook_requests(db.clone(), webhook_id.as_str(), offset, page_size)
         .await
         .map_err(|err| {
             error!("Failed to fetch webhook requests {}", err);
