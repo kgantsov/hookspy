@@ -13,6 +13,7 @@ use crate::components::webhook_request_details::WebhookRequestDetails;
 #[derive(Properties, PartialEq)]
 pub struct WebhookRequestListProps {
     pub webhook_id: String,
+    pub search_query: String,
 }
 
 fn websocket_url(path: String) -> String {
@@ -27,14 +28,27 @@ fn websocket_url(path: String) -> String {
     format!("{ws_protocol}://{host}{path}")
 }
 
+fn request_matches(request: &WebhookRequest, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    let q = query.to_lowercase();
+    request.method.to_lowercase().contains(q.as_str())
+        || request.body.to_lowercase().contains(q.as_str())
+        || request.headers.to_lowercase().contains(q.as_str())
+        || request
+            .caller_ip
+            .as_deref()
+            .map(|ip| ip.to_lowercase().contains(q.as_str()))
+            .unwrap_or(false)
+}
+
 #[component]
-pub fn WebhookRequestList(
-    WebhookRequestListProps { webhook_id }: &WebhookRequestListProps,
-) -> Html {
+pub fn WebhookRequestList(props: &WebhookRequestListProps) -> Html {
     let webhook_requests = use_state(|| vec![]);
     {
         let webhook_requests = webhook_requests.clone();
-        let webhook_id = webhook_id.clone();
+        let webhook_id = props.webhook_id.clone();
         use_effect_with(webhook_id.clone(), move |_| {
             let webhook_requests = webhook_requests.clone();
             let webhook_id = webhook_id.clone();
@@ -72,7 +86,7 @@ pub fn WebhookRequestList(
 
     {
         let webhook_requests = webhook_requests.clone();
-        let webhook_id = webhook_id.clone();
+        let webhook_id = props.webhook_id.clone();
 
         use_effect_with(webhook_id.clone(), move |current_webhook_id| {
             let (abort_handle, abort_registration) = AbortHandle::new_pair();
@@ -124,10 +138,35 @@ pub fn WebhookRequestList(
         });
     }
 
+    let search_query = props.search_query.clone();
+
+    let filtered: Vec<&WebhookRequest> = webhook_requests
+        .iter()
+        .filter(|r| request_matches(r, &search_query))
+        .collect();
+
+    let count = filtered.len();
+    let total = webhook_requests.len();
+
     html! {
-        <div class="requests-list" key={webhook_id.clone()}>
-            { for webhook_requests.iter().map(|request| html! {
-                <WebhookRequestDetails request={request.clone()} />
+        <div class="requests-list" key={props.webhook_id.clone()}>
+            if !search_query.is_empty() {
+                <div class="search-results-info">
+                    { format!("{} {} of {}", count, if count == 1 { "result" } else { "results" }, total) }
+                </div>
+            }
+            if !search_query.is_empty() && count == 0 {
+                <div class="empty-state">
+                    <div class="empty-icon">{ "🔍" }</div>
+                    <h3>{ "No matching requests" }</h3>
+                    <p>{ "Try a different search term." }</p>
+                </div>
+            }
+            { for filtered.iter().map(|request| html! {
+                <WebhookRequestDetails
+                    request={(*request).clone()}
+                    search_query={search_query.clone()}
+                />
             }) }
         </div>
     }

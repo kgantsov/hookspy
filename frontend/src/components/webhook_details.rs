@@ -19,6 +19,21 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
     let url_to_copy = url.clone();
 
     let show_toast = use_state(|| false);
+    let search_query = use_state(|| String::new());
+    let input_ref = use_node_ref();
+
+    // Reset the query and focus the input whenever the viewed webhook changes.
+    {
+        let search_query = search_query.clone();
+        let input_ref = input_ref.clone();
+        use_effect_with(webhook.id.clone(), move |_| {
+            search_query.set(String::new());
+            if let Some(input) = input_ref.cast::<web_sys::HtmlInputElement>() {
+                let _ = input.focus();
+            }
+            || ()
+        });
+    }
 
     let onclick = {
         let show_toast = show_toast.clone();
@@ -47,6 +62,32 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
         })
     };
 
+    let on_search = {
+        let search_query = search_query.clone();
+        Callback::from(move |e: InputEvent| {
+            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+            search_query.set(input.value());
+        })
+    };
+
+    let on_clear = {
+        let search_query = search_query.clone();
+        let input_ref = input_ref.clone();
+        Callback::from(move |_: MouseEvent| {
+            search_query.set(String::new());
+            if let Some(input) = input_ref.cast::<web_sys::HtmlInputElement>() {
+                let _ = input.focus();
+            }
+        })
+    };
+
+    let has_query = !(*search_query).is_empty();
+    let search_box_class = if has_query {
+        "search-box has-value"
+    } else {
+        "search-box"
+    };
+
     html! {
         <>
             <div class="content-header" key={webhook.id.clone()}>
@@ -64,7 +105,33 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
                 </div>
             </div>
 
-            <WebhookRequestList webhook_id={webhook.id.clone()} />
+            <div class="search-filter">
+                <div class={search_box_class}>
+                    <span class="search-icon">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <input
+                        ref={input_ref}
+                        class="search-input"
+                        type="text"
+                        placeholder="Search requests…"
+                        value={(*search_query).clone()}
+                        oninput={on_search}
+                    />
+                    if has_query {
+                        <button class="search-clear-btn" onclick={on_clear} type="button" aria-label="Clear search">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <WebhookRequestList webhook_id={webhook.id.clone()} search_query={(*search_query).clone()} />
 
             <Toast message="Copied to clipboard!" visible={*show_toast} />
         </>
