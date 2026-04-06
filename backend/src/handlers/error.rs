@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde::Serialize;
+use utoipa::ToSchema;
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -12,9 +13,9 @@ pub enum ApiError {
     InternalServerError(String),
 }
 
-#[derive(Serialize)]
-struct ErrorBody {
-    error: String,
+#[derive(Serialize, ToSchema)]
+pub struct ErrorBody {
+    pub error: String,
 }
 
 impl IntoResponse for ApiError {

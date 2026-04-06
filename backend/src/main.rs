@@ -11,6 +11,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, Level};
 use turso::Builder;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use hookspy::handlers::webhook::{
     create_webhook, delete_webhook, get_webhook, get_webhook_requests, list_webhooks,
@@ -48,6 +50,58 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
                 return ([(header::CONTENT_TYPE, "text/html")], index.data).into_response();
             }
             (StatusCode::NOT_FOUND, "404 Not Found").into_response()
+        }
+    }
+}
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        hookspy::handlers::webhook::create_webhook,
+        hookspy::handlers::webhook::list_webhooks,
+        hookspy::handlers::webhook::get_webhook,
+        hookspy::handlers::webhook::delete_webhook,
+        hookspy::handlers::webhook::receive_webhook,
+        hookspy::handlers::webhook::get_webhook_requests,
+        hookspy::handlers::auth::login,
+        hookspy::handlers::auth::callback,
+    ),
+    components(
+        schemas(
+            hookspy::model::webhook::Webhook,
+            hookspy::schema::webhook::CreateWebhookRequest,
+            hookspy::schema::webhook::WebhookRequest,
+            hookspy::model::user::User,
+            hookspy::handlers::error::ErrorBody,
+        )
+    ),
+    modifiers(&SecurityAddon),
+    tags(
+        (name = "webhooks", description = "Webhook management and inspection"),
+        (name = "auth", description = "Authentication via Google OAuth2"),
+    ),
+    info(
+        title = "Hookspy API",
+        description = "API for Hookspy — a webhook testing and inspection tool",
+        version = "0.1.0",
+        license(name = "MIT"),
+    )
+)]
+struct ApiDoc;
+
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "cookie_auth",
+                utoipa::openapi::security::SecurityScheme::ApiKey(
+                    utoipa::openapi::security::ApiKey::Cookie(
+                        utoipa::openapi::security::ApiKeyValue::new("auth_token"),
+                    ),
+                ),
+            );
         }
     }
 }
@@ -129,6 +183,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/user/notifications", get(user_notifications_ws));
 
     let app = Router::new()
+        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/api", api_routes)
         .nest("/ws", ws_routes)
         .with_state(state)
@@ -136,6 +191,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listener = tokio::net::TcpListener::bind(&args.address).await?;
     info!("Server running on http://{}", args.address);
+    info!("Swagger UI available at http://{}/docs", args.address);
 
     axum::serve(
         listener,

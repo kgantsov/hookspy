@@ -19,6 +19,17 @@ use crate::{
     dao::user::UserDao,
 };
 
+/// Initiate Google OAuth2 login
+///
+/// Redirects the user to the Google OAuth2 authorization page.
+#[utoipa::path(
+    get,
+    path = "/api/auth/login",
+    responses(
+        (status = 302, description = "Redirects to Google OAuth2 authorization page"),
+    ),
+    tag = "auth"
+)]
 pub async fn login(State(state): State<AppState>) -> Redirect {
     let oauth_client = BasicClient::new(ClientId::new(state.config.oauth_client_id))
         .set_client_secret(ClientSecret::new(state.config.oauth_client_secret))
@@ -55,6 +66,21 @@ pub struct CallbackParams {
     state: String,
 }
 
+/// Handle Google OAuth2 callback
+///
+/// Exchanges the authorization code for tokens, fetches user info, and sets an auth cookie.
+#[utoipa::path(
+    get,
+    path = "/api/auth/callback",
+    params(
+        ("code" = String, Query, description = "OAuth2 authorization code"),
+        ("state" = String, Query, description = "OAuth2 CSRF state token"),
+    ),
+    responses(
+        (status = 302, description = "Redirects to /webhooks on success, or / on failure"),
+    ),
+    tag = "auth"
+)]
 pub async fn callback(
     State(state): State<AppState>,
     Query(params): Query<CallbackParams>,

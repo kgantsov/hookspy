@@ -9,11 +9,24 @@ use std::time::Instant;
 use tracing::error;
 
 use crate::dao::webhook::WebhookDao;
-use crate::handlers::error::ApiError;
+#[allow(unused_imports)]
+use crate::handlers::error::{ApiError, ErrorBody};
 use crate::model::webhook::Webhook;
 use crate::schema::webhook::{CreateWebhookRequest, WebhookRequest};
 use crate::{app::AppState, auth::jwt::AuthUser};
 
+/// Create a new webhook endpoint
+#[utoipa::path(
+    post,
+    path = "/api/webhooks",
+    request_body = CreateWebhookRequest,
+    responses(
+        (status = 200, description = "Webhook created successfully", body = Webhook),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
 pub async fn create_webhook(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
@@ -36,6 +49,21 @@ pub async fn create_webhook(
     Ok(Json(webhook))
 }
 
+/// Get a webhook by ID
+#[utoipa::path(
+    get,
+    path = "/api/webhooks/{webhook_id}",
+    params(
+        ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+    ),
+    responses(
+        (status = 200, description = "Webhook found", body = Webhook),
+        (status = 404, description = "Webhook not found", body = ErrorBody),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
 pub async fn get_webhook(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
@@ -58,6 +86,17 @@ pub async fn get_webhook(
     Ok(Json(webhook))
 }
 
+/// List all webhooks for the authenticated user
+#[utoipa::path(
+    get,
+    path = "/api/webhooks",
+    responses(
+        (status = 200, description = "List of webhooks", body = Vec<Webhook>),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
 pub async fn list_webhooks(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
@@ -79,6 +118,21 @@ pub async fn list_webhooks(
     Ok(Json(webhooks))
 }
 
+/// Delete a webhook by ID
+#[utoipa::path(
+    delete,
+    path = "/api/webhooks/{webhook_id}",
+    params(
+        ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+    ),
+    responses(
+        (status = 200, description = "Webhook deleted successfully"),
+        (status = 404, description = "Webhook not found", body = ErrorBody),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
 pub async fn delete_webhook(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
@@ -109,6 +163,27 @@ pub async fn delete_webhook(
     Ok(())
 }
 
+/// Receive an incoming webhook request
+///
+/// This is the public endpoint that external services post their webhook payloads to.
+/// No authentication is required.
+#[utoipa::path(
+    post,
+    path = "/api/webhooks/{webhook_id}",
+    params(
+        ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+    ),
+    request_body(
+        content = String,
+        description = "Raw webhook payload (any content type)",
+        content_type = "text/plain"
+    ),
+    responses(
+        (status = 200, description = "Webhook request recorded", body = WebhookRequest),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    tag = "webhooks"
+)]
 pub async fn receive_webhook(
     State(state): State<AppState>,
     Path(webhook_id): Path<String>,
@@ -176,6 +251,21 @@ pub async fn receive_webhook(
     Ok(Json(webhook_request))
 }
 
+/// List all requests received by a webhook
+#[utoipa::path(
+    get,
+    path = "/api/webhooks/{webhook_id}/requests",
+    params(
+        ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+    ),
+    responses(
+        (status = 200, description = "List of recorded webhook requests", body = Vec<WebhookRequest>),
+        (status = 404, description = "Webhook not found", body = ErrorBody),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
 pub async fn get_webhook_requests(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
