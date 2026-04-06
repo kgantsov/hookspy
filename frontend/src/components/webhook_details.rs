@@ -1,9 +1,12 @@
+use gloo_timers::future::TimeoutFuture;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 use yew::prelude::*;
 
-use crate::components::{webhook_list::Webhook, webhook_request_list::WebhookRequestList};
+use crate::components::{
+    toast::Toast, webhook_list::Webhook, webhook_request_list::WebhookRequestList,
+};
 
 #[derive(Properties, PartialEq)]
 pub struct WebhookDetailsProps {
@@ -15,22 +18,34 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
     let url = webhook.url.clone();
     let url_to_copy = url.clone();
 
-    let onclick = Callback::from(move |_| {
-        let text = url_to_copy.clone();
-        spawn_local(async move {
-            if let Some(window) = window() {
-                let navigator = window.navigator();
-                let clipboard = navigator.clipboard();
+    let show_toast = use_state(|| false);
 
-                // Convert JS Promise into a Rust Future
-                let promise = clipboard.write_text(&text);
-                match JsFuture::from(promise).await {
-                    Ok(_) => web_sys::console::log_1(&"Copied!".into()),
-                    Err(err) => web_sys::console::log_1(&format!("Copy failed: {:?}", err).into()),
+    let onclick = {
+        let show_toast = show_toast.clone();
+        Callback::from(move |_| {
+            let text = url_to_copy.clone();
+            let show_toast = show_toast.clone();
+            spawn_local(async move {
+                if let Some(window) = window() {
+                    let navigator = window.navigator();
+                    let clipboard = navigator.clipboard();
+
+                    let promise = clipboard.write_text(&text);
+                    match JsFuture::from(promise).await {
+                        Ok(_) => {
+                            web_sys::console::log_1(&"Copied!".into());
+                            show_toast.set(true);
+                            TimeoutFuture::new(2_000).await;
+                            show_toast.set(false);
+                        }
+                        Err(err) => {
+                            web_sys::console::log_1(&format!("Copy failed: {:?}", err).into());
+                        }
+                    }
                 }
-            }
-        });
-    });
+            });
+        })
+    };
 
     html! {
         <>
@@ -50,6 +65,8 @@ pub fn WebhookDetails(WebhookDetailsProps { webhook }: &WebhookDetailsProps) -> 
             </div>
 
             <WebhookRequestList webhook_id={webhook.id.clone()} />
+
+            <Toast message="Copied to clipboard!" visible={*show_toast} />
         </>
     }
 }
