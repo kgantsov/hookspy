@@ -123,8 +123,9 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
         <div
             class={format!("request-card {} {}", expanded_class, props.request.id.clone())}
         >
-            <div class="request-header" {onclick}>
-                <div class="request-meta">
+
+            <div class="request-header">
+                <div class="request-meta" {onclick}>
                     <span class="method-badge method-post">
                         { highlight_text(&props.request.method, &query) }
                     </span>
