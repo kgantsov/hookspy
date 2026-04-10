@@ -1,6 +1,8 @@
 use web_sys::window;
 use yew::prelude::*;
 
+use crate::components::tooltip::Tooltip;
+
 struct ThemeOption {
     id: &'static str,
     color: &'static str,
@@ -110,13 +112,13 @@ pub fn ThemeSwitcher() -> Html {
                 };
 
                 html! {
-                    <button
-                        key={t.id}
-                        {class}
-                        {style}
-                        title={t.label}
-                        {onclick}
-                    />
+                    <Tooltip key={t.id} text={t.label}>
+                        <button
+                            {class}
+                            {style}
+                            {onclick}
+                        />
+                    </Tooltip>
                 }
             })}
         </div>
