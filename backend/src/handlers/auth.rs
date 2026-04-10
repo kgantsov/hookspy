@@ -1,5 +1,6 @@
 use axum::{
     extract::{Query, State},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Redirect},
 };
 use oauth2::basic::BasicClient;
@@ -170,4 +171,14 @@ pub async fn callback(
             Redirect::to("/").into_response()
         }
     }
+}
+
+/// Logout — clears the auth_token cookie
+pub async fn logout() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        axum::http::header::SET_COOKIE,
+        HeaderValue::from_static("auth_token=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0"),
+    );
+    (headers, StatusCode::OK)
 }

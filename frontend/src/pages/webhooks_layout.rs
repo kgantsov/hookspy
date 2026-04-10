@@ -12,6 +12,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::components::theme_switcher::ThemeSwitcher;
+use crate::components::tooltip::Tooltip;
 use crate::components::webhook_list::Webhook;
 use crate::components::webhook_list::WebhookList;
 
@@ -246,6 +247,15 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
         })
     };
 
+    let on_logout = Callback::from(move |_: MouseEvent| {
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = Request::post("/api/auth/logout").send().await;
+            if let Some(win) = window() {
+                let _ = win.location().set_href("/");
+            }
+        });
+    });
+
     html! {
         <>
             <div class="container">
@@ -266,14 +276,19 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     </div>
                     <div class="header-actions">
                         <ThemeSwitcher />
-                        <button
-                            class="btn btn-primary"
-                            onclick={
-                                let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
-                                move |_| create_webhook_modal_is_open.set(true)
-                            }>
-                            {"+ New Webhook"}
-                        </button>
+                        <Tooltip text="Sign out">
+                            <button
+                                class="icon-btn"
+                                onclick={on_logout}
+                                aria-label="Sign out"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    <path d="M10 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M13 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </Tooltip>
                     </div>
                 </header>
                 <div class="layout">
@@ -284,6 +299,19 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                                 {webhooks.len()}
                             </span>
                         </div>
+
+                        <button
+                            class="sidebar-new-btn"
+                            onclick={
+                                let create_webhook_modal_is_open = create_webhook_modal_is_open.clone();
+                                move |_| create_webhook_modal_is_open.set(true)
+                            }
+                        >
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                            </svg>
+                            { "New Webhook" }
+                        </button>
 
                         <WebhookList
                             webhooks={(*webhooks).clone()}

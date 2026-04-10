@@ -26,7 +26,7 @@ use hookspy::{
 };
 use hookspy::{
     config::init_config,
-    handlers::auth::{callback, login},
+    handlers::auth::{callback, login, logout},
 };
 
 #[derive(RustEmbed)]
@@ -173,7 +173,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/webhooks/:webhook_id", post(receive_webhook))
         .route("/webhooks/:webhook_id", delete(delete_webhook))
         .route("/auth/callback", get(callback))
-        .route("/auth/login", get(login));
+        .route("/auth/login", get(login))
+        .route("/auth/logout", post(logout));
 
     let ws_routes = Router::new()
         .route(
