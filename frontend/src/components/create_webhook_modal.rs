@@ -1,4 +1,5 @@
 use gloo_net::http::Request;
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -12,6 +13,18 @@ pub fn CreateWebhookModal(
     CreateWebhookModalProps { is_open, on_close }: &CreateWebhookModalProps,
 ) -> Html {
     let name = use_state(|| String::new());
+    let input_ref = use_node_ref();
+
+    {
+        let input_ref = input_ref.clone();
+        use_effect_with(*is_open, move |&is_open| {
+            if is_open {
+                if let Some(input) = input_ref.cast::<HtmlInputElement>() {
+                    let _ = input.focus();
+                }
+            }
+        });
+    }
 
     let on_input = {
         let name = name.clone();
@@ -78,6 +91,7 @@ pub fn CreateWebhookModal(
                     <div class="form-group">
                         <label class="form-label">{ "Webhook Name" }</label>
                         <input
+                            ref={input_ref}
                             type="text"
                             class="form-input"
                             placeholder="e.g., Payment Gateway"
