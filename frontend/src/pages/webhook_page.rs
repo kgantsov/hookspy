@@ -27,7 +27,7 @@ pub fn WebhookPage(WebhookPageProps { webhook_id }: &WebhookPageProps) -> Html {
                     Ok(resp) => {
                         if resp.status() == 401 {
                             if let Some(win) = window() {
-                                let _ = win.location().set_href("/login");
+                                let _ = win.location().set_href("/");
                             }
                         } else {
                             let fetched_webhook: Result<Webhook, _> = resp.json().await;

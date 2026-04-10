@@ -60,7 +60,7 @@ pub fn WebhookRequestList(props: &WebhookRequestListProps) -> Html {
                     Ok(resp) => {
                         if resp.status() == 401 {
                             if let Some(win) = window() {
-                                let _ = win.location().set_href("/login");
+                                let _ = win.location().set_href("/");
                             }
                         } else {
                             let fetched_webhook_requests: Result<Vec<WebhookRequest>, _> =
@@ -111,7 +111,7 @@ pub fn WebhookRequestList(props: &WebhookRequestListProps) -> Html {
                             {
                                 if resp.status() == 401 {
                                     if let Some(win) = window() {
-                                        let _ = win.location().set_href("/login");
+                                        let _ = win.location().set_href("/");
                                     }
                                 } else if let Ok(data) = resp.json().await {
                                     webhook_requests.set(data);

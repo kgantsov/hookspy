@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::pages::login_page::LoginPage;
+use crate::pages::home_page::HomePage;
 use crate::pages::webhook_page::WebhookPage;
 use crate::pages::webhooks_layout::WebhooksLayout;
 
@@ -33,7 +33,7 @@ pub enum Route {
 
 pub fn switch(route: Route) -> Html {
     match route {
-        Route::Home | Route::Login => html! { <LoginPage /> },
+        Route::Home | Route::Login => html! { <HomePage /> },
         Route::Webhooks => html! {
             <WebhooksLayout>
                 <EmptyState />

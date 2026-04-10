@@ -71,7 +71,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                     Ok(resp) => {
                         if resp.status() == 401 {
                             if let Some(win) = window() {
-                                let _ = win.location().set_href("/login");
+                                let _ = win.location().set_href("/");
                             }
                         } else {
                             let fetched_webhooks: Result<Vec<Webhook>, _> = resp.json().await;
@@ -228,7 +228,7 @@ pub fn WebhooksLayout(props: &ChildrenProps) -> Html {
                             match response {
                                 Ok(response) => {
                                     if response.status() == 401 {
-                                        let _ = window.location().set_href("/login");
+                                        let _ = window.location().set_href("/");
                                     }
 
                                     selected_webhook.set(None);
