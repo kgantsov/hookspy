@@ -186,6 +186,13 @@ cd backend && cargo test
 cd frontend && cargo test
 ```
 
+## Documentation
+
+- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [API Documentation](./docs/API.md)
+- [Database Schema](./docs/DATABASE.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

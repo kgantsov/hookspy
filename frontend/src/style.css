@@ -1662,7 +1662,6 @@ mark.search-highlight {
 @media (max-width: 768px) {
     .header-actions {
         gap: 0.5rem;
-        width: 100%;
         justify-content: space-between;
     }
     .theme-switcher {
