@@ -37,6 +37,8 @@ For detailed architecture documentation, see [ARCHITECTURE.md](./docs/ARCHITECTU
 Create a `.env` file or set the following environment variables:
 
 ```env
+ADMIN_EMAIL=your_admin_email@example.com
+
 OAUTH_CLIENT_ID=your_oauth_client_id
 OAUTH_CLIENT_SECRET=your_oauth_client_secret
 OAUTH_AUTH_URL=https://your-auth-provider.com/oauth/authorize
@@ -44,6 +46,9 @@ OAUTH_TOKEN_URL=https://your-auth-provider.com/oauth/token
 OAUTH_REDIRECT_URL=http://localhost:3000/api/auth/callback
 
 JWT_SECRET=your-secret-key-minimum-32-characters
+
+SWEEP_INTERVAL_SECONDS=3600  # Run sweep of all old webhook requests every hour
+WEBHOOK_RETENTION_DAYS=90  # Retain webhook requests for 90 days before deletion
 ```
 
 ### Development
