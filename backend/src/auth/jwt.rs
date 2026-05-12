@@ -13,6 +13,8 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
+use crate::app::AppState;
+
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,13 +65,16 @@ pub fn set_auth_cookie(jwt: &str) -> HeaderMap {
 pub struct AuthUser(pub AppClaims);
 
 #[async_trait]
-impl<S> FromRequestParts<S> for AuthUser
+impl FromRequestParts<AppState> for AuthUser
 where
-    S: Send + Sync,
+    AppState: Send + Sync,
 {
     type Rejection = (StatusCode, &'static str);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
         let cookies = parts
             .headers
             .get(axum::http::header::COOKIE)
@@ -84,7 +89,7 @@ where
             })
             .ok_or((StatusCode::UNAUTHORIZED, "Missing auth"))?;
 
-        let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "your_secret_here".to_string());
+        let secret = state.config.jwt_secret.clone();
 
         let claims =
             verify_jwt(secret, token).map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token"))?;
@@ -95,5 +100,25 @@ where
         }
 
         Ok(AuthUser(claims))
+    }
+}
+
+pub struct AdminUser(pub AppClaims);
+
+#[async_trait]
+impl FromRequestParts<AppState> for AdminUser {
+    type Rejection = (StatusCode, &'static str);
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let AuthUser(claims) = AuthUser::from_request_parts(parts, state).await?;
+
+        if claims.email != state.config.admin_email {
+            return Err((StatusCode::FORBIDDEN, "Permission denied"));
+        }
+
+        Ok(AdminUser(claims))
     }
 }

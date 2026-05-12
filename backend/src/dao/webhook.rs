@@ -2,7 +2,13 @@ use anyhow::Ok;
 use chrono::{DateTime, Offset};
 use uuid::Uuid;
 
-use crate::{model::webhook::Webhook, schema::webhook::WebhookRequest};
+use crate::{
+    model::{
+        stats::{Stats, UserWebhookStats},
+        webhook::Webhook,
+    },
+    schema::webhook::WebhookRequest,
+};
 
 pub struct WebhookDao {
     pub domain: String,
@@ -285,5 +291,62 @@ impl WebhookDao {
             .await?;
 
         Ok(rows_deleted)
+    }
+
+    pub async fn get_stats(&self, db: turso::Connection) -> anyhow::Result<Stats> {
+        let mut rows = db
+            .query("SELECT COUNT(*) FROM users", turso::params![])
+            .await?;
+        let total_users = rows
+            .next()
+            .await?
+            .map(|r| r.get::<i64>(0).unwrap_or(0))
+            .unwrap_or(0) as u64;
+
+        let mut rows = db
+            .query("SELECT COUNT(*) FROM webhooks", turso::params![])
+            .await?;
+        let total_webhooks = rows
+            .next()
+            .await?
+            .map(|r| r.get::<i64>(0).unwrap_or(0))
+            .unwrap_or(0) as u64;
+
+        let mut rows = db
+            .query("SELECT COUNT(*) FROM webhook_requests", turso::params![])
+            .await?;
+        let total_requests_received = rows
+            .next()
+            .await?
+            .map(|r| r.get::<i64>(0).unwrap_or(0))
+            .unwrap_or(0) as u64;
+
+        let mut rows = db
+            .query(
+                "SELECT u.email, COUNT(w.id) as cnt \
+                 FROM users u \
+                 LEFT JOIN webhooks w ON w.user_id = u.id \
+                 GROUP BY u.id \
+                 ORDER BY cnt DESC",
+                turso::params![],
+            )
+            .await?;
+
+        let mut webhooks_per_user = Vec::new();
+        while let Some(row) = rows.next().await? {
+            let email: String = row.get(0)?;
+            let count: i64 = row.get(1)?;
+            webhooks_per_user.push(UserWebhookStats {
+                email,
+                count: count as u64,
+            });
+        }
+
+        Ok(Stats {
+            total_users,
+            total_webhooks,
+            total_requests_received,
+            webhooks_per_user,
+        })
     }
 }

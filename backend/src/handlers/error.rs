@@ -11,6 +11,7 @@ pub enum ApiError {
     NotFound(String),
     BadRequest(String),
     InternalServerError(String),
+    Forbidden(String),
 }
 
 #[derive(Serialize, ToSchema)]
@@ -21,6 +22,9 @@ pub struct ErrorBody {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
+            ApiError::Forbidden(msg) => {
+                (StatusCode::FORBIDDEN, Json(ErrorBody { error: msg })).into_response()
+            }
             ApiError::NotFound(msg) => {
                 (StatusCode::NOT_FOUND, Json(ErrorBody { error: msg })).into_response()
             }

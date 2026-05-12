@@ -58,6 +58,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        hookspy::handlers::admin::get_stats,
         hookspy::handlers::webhook::create_webhook,
         hookspy::handlers::webhook::list_webhooks,
         hookspy::handlers::webhook::get_webhook,
@@ -69,6 +70,8 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
     ),
     components(
         schemas(
+            hookspy::model::stats::Stats,
+            hookspy::model::stats::UserWebhookStats,
             hookspy::model::webhook::Webhook,
             hookspy::schema::webhook::CreateWebhookRequest,
             hookspy::schema::webhook::WebhookRequest,
@@ -78,8 +81,9 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
     ),
     modifiers(&SecurityAddon),
     tags(
-        (name = "webhooks", description = "Webhook management and inspection"),
+        (name = "admin", description = "Administrative endpoints for monitoring and statistics"),
         (name = "auth", description = "Authentication via Google OAuth2"),
+        (name = "webhooks", description = "Webhook management and inspection"),
     ),
     info(
         title = "Hookspy API",
@@ -166,6 +170,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let api_routes = Router::new()
+        .route("/admin/stats", get(hookspy::handlers::admin::get_stats))
         .route("/health", get(|| async { "OK" }))
         .route("/webhooks", post(create_webhook))
         .route("/webhooks", get(list_webhooks))

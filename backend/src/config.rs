@@ -1,5 +1,6 @@
 #[derive(Clone)]
 pub struct Config {
+    pub admin_email: String,
     pub oauth_client_id: String,
     pub oauth_client_secret: String,
     pub oauth_auth_url: String,
@@ -12,6 +13,7 @@ pub struct Config {
 
 // parse env variables and init Config
 pub fn init_config() -> Config {
+    let admin_email = std::env::var("ADMIN_EMAIL").expect("ADMIN_EMAIL must be set");
     let oauth_client_id = std::env::var("OAUTH_CLIENT_ID").expect("OAUTH_CLIENT_ID must be set");
     let oauth_client_secret =
         std::env::var("OAUTH_CLIENT_SECRET").expect("OAUTH_CLIENT_SECRET must be set");
@@ -31,6 +33,7 @@ pub fn init_config() -> Config {
         .expect("WEBHOOK_RETENTION_DAYS must be a valid integer");
 
     Config {
+        admin_email,
         oauth_client_id,
         oauth_client_secret,
         oauth_auth_url,
