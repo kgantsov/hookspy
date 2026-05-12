@@ -6,3 +6,4 @@ pub mod handlers;
 pub mod model;
 pub mod notification;
 pub mod schema;
+pub mod sweeper;

@@ -1,5 +1,5 @@
 use anyhow::Ok;
-use chrono::Offset;
+use chrono::{DateTime, Offset};
 use uuid::Uuid;
 
 use crate::{model::webhook::Webhook, schema::webhook::WebhookRequest};
@@ -270,5 +270,20 @@ impl WebhookDao {
         }
 
         Ok(requests)
+    }
+
+    pub async fn delete_old_webhook_requests(
+        &self,
+        db: turso::Connection,
+        before: DateTime<chrono::Utc>,
+    ) -> anyhow::Result<u64> {
+        let rows_deleted = db
+            .execute(
+                "DELETE FROM webhook_requests WHERE received_at < ?",
+                turso::params![before.to_rfc3339()],
+            )
+            .await?;
+
+        Ok(rows_deleted)
     }
 }

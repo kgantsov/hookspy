@@ -6,8 +6,8 @@ use axum::{
 };
 use clap::Parser;
 use rust_embed::RustEmbed;
-use std::net::SocketAddr;
 use std::sync::Arc;
+use std::{net::SocketAddr, time::Duration};
 use tokio::sync::Mutex;
 use tracing::{info, Level};
 use turso::Builder;
@@ -20,6 +20,7 @@ use hookspy::handlers::webhook::{
 };
 use hookspy::model::db::init_db;
 use hookspy::notification::notification::Notification;
+use hookspy::sweeper::run_sweeper;
 use hookspy::{
     app::AppState,
     handlers::ws::{user_notifications_ws, webhook_notifications_ws},
@@ -161,7 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db: Arc::new(Mutex::new(db)),
         notification: Arc::new(Mutex::new(Notification::new())),
         domain: args.domain,
-        config,
+        config: config.clone(),
     };
 
     let api_routes = Router::new()
@@ -187,12 +188,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/api", api_routes)
         .nest("/ws", ws_routes)
-        .with_state(state)
+        .with_state(state.clone())
         .fallback(static_handler);
 
     let listener = tokio::net::TcpListener::bind(&args.address).await?;
     info!("Server running on http://{}", args.address);
     info!("Swagger UI available at http://{}/docs", args.address);
+
+    tokio::spawn(run_sweeper(
+        state,
+        Duration::from_secs(config.sweep_interval_seconds),
+    ));
 
     axum::serve(
         listener,

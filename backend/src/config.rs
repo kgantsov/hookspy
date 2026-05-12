@@ -6,6 +6,8 @@ pub struct Config {
     pub oauth_token_url: String,
     pub oauth_redirect_url: String,
     pub jwt_secret: String,
+    pub sweep_interval_seconds: u64,
+    pub webhook_retention_days: u64,
 }
 
 // parse env variables and init Config
@@ -18,6 +20,15 @@ pub fn init_config() -> Config {
     let oauth_redirect_url =
         std::env::var("OAUTH_REDIRECT_URL").expect("OAUTH_REDIRECT_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let sweep_interval_seconds = std::env::var("SWEEP_INTERVAL_SECONDS")
+        .unwrap_or_else(|_| "60".to_string())
+        .parse()
+        .expect("SWEEP_INTERVAL_SECONDS must be a valid integer");
+
+    let webhook_retention_days = std::env::var("WEBHOOK_RETENTION_DAYS")
+        .unwrap_or_else(|_| "90".to_string())
+        .parse()
+        .expect("WEBHOOK_RETENTION_DAYS must be a valid integer");
 
     Config {
         oauth_client_id,
@@ -26,5 +37,7 @@ pub fn init_config() -> Config {
         oauth_token_url,
         oauth_redirect_url,
         jwt_secret,
+        sweep_interval_seconds,
+        webhook_retention_days,
     }
 }
