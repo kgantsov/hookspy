@@ -114,6 +114,7 @@ impl utoipa::Modify for SecurityAddon {
 #[derive(Parser, Debug)]
 #[command(
     author = "Kostiantyn Hantsov",
+    version,
     about = "Hookspy - Webhook testing tool"
 )]
 struct Args {
