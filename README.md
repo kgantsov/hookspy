@@ -15,6 +15,10 @@ A real-time webhook testing and inspection tool built with Rust. HookSpy provide
 - **Single Binary Deployment** - Frontend assets are embedded into the backend binary
 - **LibSQL Database** - Lightweight, embedded database for data persistence
 
+
+![Dashboard](/.github/screenshots/HookSpy.png)
+
+
 ## Architecture
 
 HookSpy is a full-stack Rust application:
