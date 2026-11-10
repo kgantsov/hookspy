@@ -15,8 +15,8 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use hookspy::handlers::webhook::{
-    create_webhook, delete_webhook, get_webhook, get_webhook_requests, list_webhooks,
-    receive_webhook,
+    create_webhook, delete_webhook, delete_webhook_requests, get_webhook, get_webhook_requests,
+    list_webhooks, receive_webhook,
 };
 use hookspy::model::db::init_db;
 use hookspy::notification::notification::Notification;
@@ -63,6 +63,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
         hookspy::handlers::webhook::list_webhooks,
         hookspy::handlers::webhook::get_webhook,
         hookspy::handlers::webhook::delete_webhook,
+        hookspy::handlers::webhook::delete_webhook_requests,
         hookspy::handlers::webhook::receive_webhook,
         hookspy::handlers::webhook::get_webhook_requests,
         hookspy::handlers::auth::login,
@@ -179,6 +180,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/webhooks/:webhook_id", get(get_webhook))
         .route("/webhooks/:webhook_id", post(receive_webhook))
         .route("/webhooks/:webhook_id", delete(delete_webhook))
+        .route(
+            "/webhooks/:webhook_id/requests",
+            delete(delete_webhook_requests),
+        )
         .route("/auth/callback", get(callback))
         .route("/auth/login", get(login))
         .route("/auth/logout", post(logout));

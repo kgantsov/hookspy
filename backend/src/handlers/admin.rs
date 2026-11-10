@@ -20,7 +20,7 @@ use crate::{dao::webhook::WebhookDao, model::stats::Stats};
 )]
 pub async fn get_stats(
     State(state): State<AppState>,
-    AdminUser(user): AdminUser,
+    AdminUser(_user): AdminUser,
 ) -> Result<Json<Stats>, ApiError> {
     let db = state.db.lock().await;
 

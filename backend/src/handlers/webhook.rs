@@ -315,3 +315,54 @@ pub async fn get_webhook_requests(
 
     Ok(Json(requests))
 }
+
+/// Delete all requests received by a webhook
+#[utoipa::path(
+    delete,
+    path = "/api/webhooks/{webhook_id}/requests",
+    params(
+        ("webhook_id" = String, Path, description = "Unique webhook identifier"),
+    ),
+    responses(
+        (status = 200, description = "All webhook requests deleted successfully"),
+        (status = 404, description = "Webhook not found", body = ErrorBody),
+        (status = 500, description = "Internal server error", body = ErrorBody),
+    ),
+    security(("cookie_auth" = [])),
+    tag = "webhooks"
+)]
+pub async fn delete_webhook_requests(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(webhook_id): Path<String>,
+) -> Result<(), ApiError> {
+    let db = state.db.lock().await;
+
+    let webhook_dao = WebhookDao {
+        domain: state.domain.clone(),
+    };
+
+    let _webhook = webhook_dao
+        .get_webhook(db.clone(), user.sub.as_str(), webhook_id.as_str())
+        .await
+        .map_err(|err| {
+            error!("Failed to get webhook: {} {}", webhook_id, err);
+            ApiError::NotFound("webhook not found".to_string())
+        })?;
+
+    webhook_dao
+        .delete_webhook_requests(db.clone(), webhook_id.as_str())
+        .await
+        .map_err(|err| {
+            error!("Failed to delete webhook requests: {} {}", webhook_id, err);
+            ApiError::InternalServerError("failed to delete webhook requests".to_string())
+        })?;
+
+    // Let every other session viewing this webhook know the list changed so it re-fetches.
+    let mut notification = state.notification.lock().await;
+    notification
+        .notify(webhook_id.clone(), "requests_cleared".to_string())
+        .await;
+
+    Ok(())
+}
