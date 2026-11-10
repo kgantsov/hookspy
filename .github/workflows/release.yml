@@ -55,6 +55,8 @@ jobs:
   build-linux:
     name: Build Linux backend
     needs: build-frontend
+    # Built against musl, fully static — the binary carries no libc dependency,
+    # so it runs on any Linux regardless of the runner's or the server's glibc.
     runs-on: ubuntu-latest
 
     steps:
@@ -69,19 +71,22 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-gnu
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install musl toolchain
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
 
       - name: Build backend
         working-directory: backend
-        run: cargo build --release --target x86_64-unknown-linux-gnu
+        run: cargo build --release --target x86_64-unknown-linux-musl
 
       - name: Package binary
         run: |
           mkdir -p dist
-          cp backend/target/x86_64-unknown-linux-gnu/release/${{ env.BIN_NAME }} \
+          cp backend/target/x86_64-unknown-linux-musl/release/${{ env.BIN_NAME }} \
              dist/${{ env.BIN_NAME }}-linux
 
       - name: Upload Linux binary
