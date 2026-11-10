@@ -1021,12 +1021,39 @@ mark.search-highlight {
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
-    user-select: none;
     transition: background 0.14s;
+    /* No user-select: none — dragging across the row selects its text, and the
+       click handler ignores clicks that moved. */
 }
 
 .request-header:hover {
     background: var(--accent-tint);
+}
+.expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--r-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+}
+
+.expand-btn:hover {
+    color: var(--text-primary);
+    background: var(--accent-tint);
+}
+
+.expand-btn:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
 }
 
 .request-meta {
@@ -1140,11 +1167,10 @@ mark.search-highlight {
 }
 
 .expand-icon {
-    color: var(--text-secondary);
+    color: inherit;
     transition: transform 0.22s var(--ease);
     font-size: 0.75rem;
     flex-shrink: 0;
-    margin-left: 0.25rem;
 }
 
 .request-card.expanded .expand-icon {

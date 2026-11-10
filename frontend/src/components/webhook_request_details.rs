@@ -112,9 +112,40 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
 
     let expanded_class = if *expanded { "expanded" } else { "" };
 
+    // Clicking the row toggles the card, but dragging across it is a text
+    // selection, not a toggle — so remember where the press started and ignore
+    // any click that travelled more than a few pixels.
+    let press_origin = use_mut_ref(|| None::<(i32, i32)>);
+
+    let onmousedown = {
+        let press_origin = press_origin.clone();
+        Callback::from(move |e: MouseEvent| {
+            *press_origin.borrow_mut() = Some((e.client_x(), e.client_y()));
+        })
+    };
+
     let onclick = {
         let expanded = expanded.clone();
-        Callback::from(move |_| expanded.set(!*expanded))
+        let press_origin = press_origin.clone();
+        Callback::from(move |e: MouseEvent| {
+            let dragged = match *press_origin.borrow() {
+                Some((x, y)) => (e.client_x() - x).abs() > 4 || (e.client_y() - y).abs() > 4,
+                None => false,
+            };
+            if !dragged {
+                expanded.set(!*expanded);
+            }
+        })
+    };
+
+    // The button toggles unconditionally; stop the event so the row handler
+    // above doesn't toggle it straight back.
+    let on_toggle_click = {
+        let expanded = expanded.clone();
+        Callback::from(move |e: MouseEvent| {
+            e.stop_propagation();
+            expanded.set(!*expanded);
+        })
     };
 
     let query = props.search_query.clone();
@@ -124,8 +155,8 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
             class={format!("request-card {} {}", expanded_class, props.request.id.clone())}
         >
 
-            <div class="request-header">
-                <div class="request-meta" {onclick}>
+            <div class="request-header" {onmousedown} {onclick}>
+                <div class="request-meta">
                     <span class="method-badge method-post">
                         { highlight_text(&props.request.method, &query) }
                     </span>
@@ -175,7 +206,17 @@ pub fn WebhookRequestDetails(props: &WebhookRequestProps) -> Html {
                         }
                     </span>
                 </div>
-                <span class="expand-icon">{ "▼" }</span>
+                <Tooltip text={if *expanded { "Collapse" } else { "Expand" }}>
+                    <button
+                        class="expand-btn"
+                        type="button"
+                        onclick={on_toggle_click}
+                        aria-expanded={if *expanded { "true" } else { "false" }}
+                        aria-label={if *expanded { "Collapse request" } else { "Expand request" }}
+                    >
+                        <span class="expand-icon">{ "▼" }</span>
+                    </button>
+                </Tooltip>
             </div>
             <div class="request-body">
                 {
